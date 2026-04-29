@@ -1,0 +1,101 @@
+import { api } from "@/lib/api"
+
+export type AdRequestStatus =
+  | "draft"
+  | "pending_publication"
+  | "processing"
+  | "partially_published"
+  | "published"
+  | "failed"
+  | "rejected"
+  | "cancelled"
+
+export type AdRequestBaseAdCreative = {
+  id: number
+  name: string
+  product_service: string | null
+  remote_image_url: string | null
+}
+
+export type AdRequestAdPackage = {
+  id: number
+  name: string
+  price_cents: number
+  duration_days: number
+  platform_providers: string[]
+}
+
+export type AdRequestPlatformPublication = {
+  id: number
+  provider: string
+  status: string
+}
+
+export type AdRequest = {
+  id: number
+  organization_id: number
+  user_id: number
+  ad_package_id: number
+  base_ad_creative_id: number | null
+  status: AdRequestStatus
+  created_at: string
+  updated_at: string
+  base_ad_creative: AdRequestBaseAdCreative
+  ad_package: AdRequestAdPackage
+  platform_publications: AdRequestPlatformPublication[]
+}
+
+export type AdRequestPayload = {
+  organization_id: number
+  user_id: number
+  ad_package_id: number
+  base_ad_creative_id?: number | null
+}
+
+type AdRequestsResponse = {
+  ad_requests: AdRequest[]
+}
+
+type AdRequestResponse = {
+  ad_request: AdRequest
+}
+
+export const getAdRequests = async () => {
+  const res = await api<AdRequestsResponse>("/api/v1/ad_requests")
+  return res.ad_requests
+}
+
+export const getAdRequest = async (id: number | string) => {
+  const res = await api<AdRequestResponse>(`/api/v1/ad_requests/${id}`)
+  return res.ad_request
+}
+
+export const createAdRequest = async (payload: AdRequestPayload) => {
+  const res = await api<AdRequestResponse>("/api/v1/ad_requests", {
+    method: "POST",
+    body: {
+      ad_request: payload,
+    },
+  })
+  return res.ad_request
+}
+
+export const updateAdRequest = async (
+  id: number | string,
+  payload: Partial<AdRequestPayload>
+) => {
+  const res = await api<AdRequestResponse>(`/api/v1/ad_requests/${id}`, {
+    method: "PATCH",
+    body: {
+      ad_request: payload,
+    },
+  })
+  return res.ad_request
+}
+
+export const publishAdRequest = async (id: number | string) => {
+  const res = await api<AdRequestResponse>(`/api/v1/ad_requests/${id}/publish`, {
+    method: "POST",
+  })
+  return res.ad_request
+}
