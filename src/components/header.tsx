@@ -35,7 +35,7 @@ export const Header = () => {
 
         {isAuthenticated && user ? (
           <div className="flex items-center gap-3">
-            <Button className="rounded-full gap-2" asChild>
+            <Button className="hidden rounded-full gap-2 sm:inline-flex" asChild>
               <Link href="/anuncios/criar">
                 <Plus className="size-4" />
                 Criar Anúncio
@@ -67,9 +67,15 @@ export const Header = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
+                <Link href="/anuncios/criar" className="cursor-pointer gap-2">
+                  <Plus className="size-4" />
+                  Criar Anúncio
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link href="/anuncios" className="cursor-pointer gap-2">
                   <Megaphone className="size-4" />
-                  Meus Anúncios
+                  Anúncios da empresa
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

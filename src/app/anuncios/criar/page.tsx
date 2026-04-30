@@ -12,6 +12,7 @@ import { getOrganization } from "@/api/organization"
 import type { Organization } from "@/api/organization"
 import { createBaseAdCreative } from "@/api/base-ad-creative"
 import type { CreateBaseAdCreativePayload } from "@/api/base-ad-creative"
+import { createAdRequest } from "@/api/ad-request"
 import { CompleteOrganizationStep } from "@/features/adCreationFlow/complete-organization-step"
 import { AdBasicInfoStep } from "@/features/adCreationFlow/ad-basic-info-step"
 import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
@@ -25,6 +26,7 @@ import { AdObjectiveStep } from "@/features/adCreationFlow/ad-objective-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
 import { ReviewStep } from "@/features/adCreationFlow/review-step"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
+import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
 
 const TOTAL_STEPS = 7
 
@@ -34,6 +36,8 @@ const CriarAnuncioPage = () => {
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [publishModalOpen, setPublishModalOpen] = useState(false)
+  const [createdAdRequestId, setCreatedAdRequestId] = useState<number | null>(null)
   const flow = useAdCreationFlow()
 
   const fetchOrganization = useCallback(async () => {
@@ -90,41 +94,73 @@ const CriarAnuncioPage = () => {
     flow.update({ step })
   }
 
-  const handleConfirm = async () => {
+  const buildCreativePayload = (): CreateBaseAdCreativePayload => ({
+    organization_id: user!.organization_id,
+    name: flow.adBasicInfo?.name ?? "",
+    product_service: flow.adBasicInfo?.productService ?? undefined,
+    message: flow.adMessage ?? undefined,
+    optimization_goal: flow.optimizationGoal?.objective ?? undefined,
+    link: flow.optimizationGoal?.link ?? undefined,
+    target_gender: flow.audience?.targetGender ?? undefined,
+    target_age_min: flow.audience?.targetAgeMin ?? undefined,
+    target_age_max: flow.audience?.targetAgeMax ?? undefined,
+    target_social_classes: flow.socialClasses ?? undefined,
+    geo_locations: flow.geoLocation
+      ? {
+          countries: ["BR"],
+          cities: flow.geoLocation.cities.map((c) => ({ key: c.id.toString(), name: c.name, region: c.state })),
+          location_types: ["home", "recent"],
+        }
+      : undefined,
+    // TODO: replace with real image upload
+    remote_image_url: "https://www.allrecipes.com/thmb/5JVfA7MxfTUPfRerQMdF-nGKsLY=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/25473-the-perfect-basic-burger-DDMFS-4x3-56eaba3833fd4a26a82755bcd0be0c54.jpg",
+  })
+
+  const createDraftAdRequest = async () => {
+    if (!user) return null
+    const creative = await createBaseAdCreative(buildCreativePayload())
+    const adRequest = await createAdRequest({
+      organization_id: user.organization_id,
+      user_id: user.id,
+      base_ad_creative_id: creative.id,
+    })
+    return adRequest
+  }
+
+  const handleSaveDraft = async () => {
     if (!user || submitting) return
     setSubmitting(true)
-
     try {
-      const payload: CreateBaseAdCreativePayload = {
-        organization_id: user.organization_id,
-        name: flow.adBasicInfo?.name ?? "",
-        product_service: flow.adBasicInfo?.productService ?? undefined,
-        message: flow.adMessage ?? undefined,
-        optimization_goal: flow.optimizationGoal?.objective ?? undefined,
-        link: flow.optimizationGoal?.link ?? undefined,
-        target_gender: flow.audience?.targetGender ?? undefined,
-        target_age_min: flow.audience?.targetAgeMin ?? undefined,
-        target_age_max: flow.audience?.targetAgeMax ?? undefined,
-        target_social_classes: flow.socialClasses ?? undefined,
-        geo_locations: flow.geoLocation
-          ? {
-              countries: ["BR"],
-              cities: flow.geoLocation.cities.map((c) => ({ key: c.id.toString(), name: c.name, region: c.state })),
-              location_types: ["home", "recent"],
-            }
-          : undefined,
-        // TODO: replace with real image upload
-        remote_image_url: "https://www.allrecipes.com/thmb/5JVfA7MxfTUPfRerQMdF-nGKsLY=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/25473-the-perfect-basic-burger-DDMFS-4x3-56eaba3833fd4a26a82755bcd0be0c54.jpg",
-      }
-
-      await createBaseAdCreative(payload)
+      await createDraftAdRequest()
       flow.clear()
       router.push("/anuncios")
     } catch (err) {
-      console.error("Failed to create ad creative", err)
+      console.error("Failed to save draft", err)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handlePublish = async () => {
+    if (!user || submitting) return
+    setSubmitting(true)
+    try {
+      const adRequest = await createDraftAdRequest()
+      if (adRequest) {
+        setCreatedAdRequestId(adRequest.id)
+        setPublishModalOpen(true)
+      }
+    } catch (err) {
+      console.error("Failed to create ad request", err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handlePublished = () => {
+    setPublishModalOpen(false)
+    flow.clear()
+    router.push("/anuncios")
   }
 
   const handleBack = () => {
@@ -199,7 +235,8 @@ const CriarAnuncioPage = () => {
             flow={flow}
             submitting={submitting}
             onEdit={handleEditStep}
-            onConfirm={handleConfirm}
+            onSaveDraft={handleSaveDraft}
+            onPublish={handlePublish}
           />
         )
     }
@@ -229,6 +266,12 @@ const CriarAnuncioPage = () => {
           </div>
         )}
         {renderStep()}
+        <PublishAdModal
+          adRequestId={createdAdRequestId}
+          open={publishModalOpen}
+          onOpenChange={setPublishModalOpen}
+          onPublished={handlePublished}
+        />
       </Layout>
     </AuthGuard>
   )

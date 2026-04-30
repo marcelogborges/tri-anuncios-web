@@ -1,11 +1,26 @@
+import { ImageIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import type { AdRequest, AdRequestStatus } from "@/api/ad-request"
+
+const timeAgo = (dateStr: string): string => {
+  const now = Date.now()
+  const past = new Date(dateStr).getTime()
+  const diffMs = now - past
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 1) return "agora mesmo"
+  if (minutes < 60) return `há ${minutes} minuto${minutes > 1 ? "s" : ""}`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `há ${hours} hora${hours > 1 ? "s" : ""}`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `há ${days} dia${days > 1 ? "s" : ""}`
+  const months = Math.floor(days / 30)
+  return `há ${months} ${months > 1 ? "meses" : "mês"}`
+}
 
 const STATUS_CONFIG: Record<AdRequestStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "tertiary" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
-  pending_publication: { label: "Aguardando publicação", variant: "outline" },
+  pending_publication: { label: "Processando", variant: "secondary" },
   processing: { label: "Processando", variant: "tertiary" },
   partially_published: { label: "Parcialmente publicado", variant: "tertiary" },
   published: { label: "Publicado", variant: "default" },
@@ -14,94 +29,69 @@ const STATUS_CONFIG: Record<AdRequestStatus, { label: string; variant: "default"
   cancelled: { label: "Cancelado", variant: "secondary" },
 }
 
-const PROVIDER_LABELS: Record<string, string> = {
-  meta: "Meta Ads",
-  tiktok_ads: "TikTok Ads",
-  google_ads: "Google Ads",
-}
-
-const PUB_STATUS_LABELS: Record<string, string> = {
-  pending: "Pendente",
-  processing: "Processando",
-  published: "Publicado",
-  failed: "Falhou",
-  rejected: "Rejeitado",
-  paused: "Pausado",
-  cancelled: "Cancelado",
-}
-
-const formatCurrency = (cents: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100)
-
-const formatDate = (dateStr: string) =>
-  new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr))
 
 type AdRequestCardProps = {
   adRequest: AdRequest
+  onPublish?: (adRequest: AdRequest) => void
 }
 
-export const AdRequestCard = ({ adRequest }: AdRequestCardProps) => {
+export const AdRequestCard = ({ adRequest, onPublish }: AdRequestCardProps) => {
+  const imageUrl = adRequest.base_ad_creative.remote_image_url
   const statusConfig = STATUS_CONFIG[adRequest.status] ?? { label: adRequest.status, variant: "outline" as const }
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="flex flex-col gap-1 min-w-0">
-          <CardTitle className="truncate">
-            {adRequest.base_ad_creative.name}
-          </CardTitle>
-          {adRequest.base_ad_creative.product_service && (
-            <p className="text-sm text-muted-foreground">
-              {adRequest.base_ad_creative.product_service}
-            </p>
-          )}
-        </div>
-        <Badge variant={statusConfig.variant} className="shrink-0">
+    <div className="flex flex-col overflow-hidden rounded-xl border bg-white sm:flex-row sm:items-center sm:gap-5 sm:overflow-visible sm:border sm:px-5 sm:py-4">
+      <div className="relative sm:contents">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={adRequest.base_ad_creative.name}
+            className="h-36 w-full object-cover sm:h-28 sm:w-28 sm:shrink-0 sm:rounded-lg"
+          />
+        ) : (
+          <div className="flex h-36 w-full items-center justify-center bg-muted sm:h-28 sm:w-28 sm:shrink-0 sm:rounded-lg">
+            <ImageIcon className="size-10 text-muted-foreground" />
+          </div>
+        )}
+        <Badge variant={statusConfig.variant} className="absolute bottom-2 left-2 text-xs sm:hidden">
           {statusConfig.label}
         </Badge>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">Pacote: </span>
-            <span className="font-medium">{adRequest.ad_package.name}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Valor: </span>
-            <span className="font-medium">{formatCurrency(adRequest.ad_package.price_cents)}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Duração: </span>
-            <span className="font-medium">{adRequest.ad_package.duration_days} dias</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Criado em: </span>
-            <span className="font-medium">{formatDate(adRequest.created_at)}</span>
-          </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-1 p-4 sm:p-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate font-bold">
+            {adRequest.base_ad_creative.name}
+          </p>
+          <Badge variant={statusConfig.variant} className="hidden shrink-0 text-xs sm:inline-flex">
+            {statusConfig.label}
+          </Badge>
         </div>
+        <p className="text-sm text-muted-foreground">
+          Anúncio criado {timeAgo(adRequest.created_at)}
+        </p>
 
-        {adRequest.platform_publications.length > 0 && (
-          <>
-            <Separator />
-            <div className="flex flex-wrap gap-3">
-              {adRequest.platform_publications.map((pub) => (
-                <div
-                  key={pub.id}
-                  className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm"
-                >
-                  <span className="font-medium">
-                    {PROVIDER_LABELS[pub.provider] ?? pub.provider}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {PUB_STATUS_LABELS[pub.status] ?? pub.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+        <div className="mt-3 flex items-center gap-3">
+          {adRequest.status === "draft" && onPublish && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full rounded-full border-foreground/30 sm:w-auto"
+              onClick={() => onPublish(adRequest)}
+            >
+              Publicar
+            </Button>
+          )}
+
+          {adRequest.status !== "draft" && (
+            <Button variant="outline" size="lg" className="w-full rounded-full border-foreground/30 sm:w-auto">
+              Ver Estatísticas
+            </Button>
+          )}
+
+
+        </div>
+      </div>
+    </div>
   )
 }

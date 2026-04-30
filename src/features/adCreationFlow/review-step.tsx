@@ -22,7 +22,8 @@ type Props = {
   flow: AdCreationFlowState
   submitting?: boolean
   onEdit: (step: number) => void
-  onConfirm: () => void
+  onSaveDraft: () => void
+  onPublish: () => void
 }
 
 const Row = ({
@@ -51,7 +52,7 @@ const Row = ({
   </div>
 )
 
-export const ReviewStep = ({ flow, submitting, onEdit, onConfirm }: Props) => {
+export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }: Props) => {
   const { adBasicInfo, adMessage, socialClasses, audience, geoLocation, optimizationGoal } = flow
 
   return (
@@ -140,9 +141,19 @@ export const ReviewStep = ({ flow, submitting, onEdit, onConfirm }: Props) => {
           </>
         )}
 
-        <Button className="mt-6 w-full" onClick={onConfirm} disabled={submitting}>
-          {submitting ? "Criando..." : "Criar Anúncio"}
-        </Button>
+        <div className="mt-6 flex flex-col gap-3">
+          <Button className="w-full" onClick={onPublish} disabled={submitting}>
+            {submitting ? "Criando..." : "Publicar Agora"}
+          </Button>
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={onSaveDraft}
+            disabled={submitting}
+          >
+            Salvar Rascunho
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

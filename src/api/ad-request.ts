@@ -35,20 +35,20 @@ export type AdRequest = {
   id: number
   organization_id: number
   user_id: number
-  ad_package_id: number
+  ad_package_id: number | null
   base_ad_creative_id: number | null
   status: AdRequestStatus
   created_at: string
   updated_at: string
   base_ad_creative: AdRequestBaseAdCreative
-  ad_package: AdRequestAdPackage
+  ad_package: AdRequestAdPackage | null
   platform_publications: AdRequestPlatformPublication[]
 }
 
 export type AdRequestPayload = {
   organization_id: number
   user_id: number
-  ad_package_id: number
+  ad_package_id?: number | null
   base_ad_creative_id?: number | null
 }
 
@@ -93,9 +93,12 @@ export const updateAdRequest = async (
   return res.ad_request
 }
 
-export const publishAdRequest = async (id: number | string) => {
+export const publishAdRequest = async (id: number | string, adPackageId: number) => {
   const res = await api<AdRequestResponse>(`/api/v1/ad_requests/${id}/publish`, {
     method: "POST",
+    body: {
+      ad_request: { ad_package_id: adPackageId },
+    },
   })
   return res.ad_request
 }
