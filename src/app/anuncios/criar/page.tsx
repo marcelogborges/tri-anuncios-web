@@ -16,6 +16,8 @@ import { createAdRequest } from "@/api/ad-request"
 import { CompleteOrganizationStep } from "@/features/adCreationFlow/complete-organization-step"
 import { AdBasicInfoStep } from "@/features/adCreationFlow/ad-basic-info-step"
 import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
+import { AdImageStep } from "@/features/adCreationFlow/ad-image-step"
+import type { AdImageData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { AdMessageStep } from "@/features/adCreationFlow/ad-message-step"
 import { SocialClassStep } from "@/features/adCreationFlow/social-class-step"
 import { AudienceStep } from "@/features/adCreationFlow/audience-step"
@@ -28,7 +30,7 @@ import { ReviewStep } from "@/features/adCreationFlow/review-step"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
 
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 8
 
 const CriarAnuncioPage = () => {
   const router = useRouter()
@@ -38,6 +40,7 @@ const CriarAnuncioPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [createdAdRequestId, setCreatedAdRequestId] = useState<number | null>(null)
+  const [adImageFile, setAdImageFile] = useState<File | null>(null)
   const flow = useAdCreationFlow()
 
   const fetchOrganization = useCallback(async () => {
@@ -70,24 +73,29 @@ const CriarAnuncioPage = () => {
     flow.update({ adBasicInfo: data, step: 2 })
   }
 
+  const handleImageComplete = (data: AdImageData, file?: File) => {
+    if (file) setAdImageFile(file)
+    flow.update({ adImage: data, step: 3 })
+  }
+
   const handleMessageComplete = (message: string) => {
-    flow.update({ adMessage: message, step: 3 })
+    flow.update({ adMessage: message, step: 4 })
   }
 
   const handleSocialClassComplete = (classes: string[]) => {
-    flow.update({ socialClasses: classes, step: 4 })
+    flow.update({ socialClasses: classes, step: 5 })
   }
 
   const handleAudienceComplete = (data: AudienceDemographics) => {
-    flow.update({ audience: data, step: 5 })
+    flow.update({ audience: data, step: 6 })
   }
 
   const handleGeoLocationComplete = (data: GeoLocationData) => {
-    flow.update({ geoLocation: data, step: 6 })
+    flow.update({ geoLocation: data, step: 7 })
   }
 
   const handleObjectiveComplete = (data: AdObjectiveData) => {
-    flow.update({ optimizationGoal: data, step: 7 })
+    flow.update({ optimizationGoal: data, step: 8 })
   }
 
   const handleEditStep = (step: number) => {
@@ -112,13 +120,13 @@ const CriarAnuncioPage = () => {
           location_types: ["home", "recent"],
         }
       : undefined,
-    // TODO: replace with real image upload
-    remote_image_url: "https://www.allrecipes.com/thmb/5JVfA7MxfTUPfRerQMdF-nGKsLY=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/25473-the-perfect-basic-burger-DDMFS-4x3-56eaba3833fd4a26a82755bcd0be0c54.jpg",
+    remote_image_url: flow.adImage?.type === "url" ? flow.adImage.url : undefined,
   })
 
   const createDraftAdRequest = async () => {
     if (!user) return null
-    const creative = await createBaseAdCreative(buildCreativePayload())
+    const file = flow.adImage?.type === "file" ? adImageFile ?? undefined : undefined
+    const creative = await createBaseAdCreative(buildCreativePayload(), file)
     const adRequest = await createAdRequest({
       organization_id: user.organization_id,
       user_id: user.id,
@@ -196,33 +204,40 @@ const CriarAnuncioPage = () => {
         )
       case 2:
         return (
+          <AdImageStep
+            initialValues={flow.adImage}
+            onComplete={handleImageComplete}
+          />
+        )
+      case 3:
+        return (
           <AdMessageStep
             initialValue={flow.adMessage}
             onComplete={handleMessageComplete}
           />
         )
-      case 3:
+      case 4:
         return (
           <SocialClassStep
             initialValues={flow.socialClasses}
             onComplete={handleSocialClassComplete}
           />
         )
-      case 4:
+      case 5:
         return (
           <AudienceStep
             initialValues={flow.audience}
             onComplete={handleAudienceComplete}
           />
         )
-      case 5:
+      case 6:
         return (
           <GeoLocationStep
             initialValues={flow.geoLocation}
             onComplete={handleGeoLocationComplete}
           />
         )
-      case 6:
+      case 7:
         return (
           <AdObjectiveStep
             initialValues={flow.optimizationGoal}

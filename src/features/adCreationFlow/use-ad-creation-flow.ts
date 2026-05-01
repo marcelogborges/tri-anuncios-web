@@ -6,9 +6,14 @@ import type { GeoLocationData } from "@/features/adCreationFlow/geo-location-ste
 
 const STORAGE_KEY = "tri-anuncios:ad-creation-flow"
 
+export type AdImageData =
+  | { type: "file"; fileName: string }
+  | { type: "url"; url: string }
+
 export type AdCreationFlowState = {
   step: number
   adBasicInfo: AdBasicInfo | null
+  adImage: AdImageData | null
   adMessage: string | null
   socialClasses: string[] | null
   audience: AudienceDemographics | null
@@ -19,6 +24,7 @@ export type AdCreationFlowState = {
 const DEFAULT_STATE: AdCreationFlowState = {
   step: 0,
   adBasicInfo: null,
+  adImage: null,
   adMessage: null,
   socialClasses: null,
   audience: null,

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,7 +37,7 @@ type AdRequestCardProps = {
 }
 
 export const AdRequestCard = ({ adRequest, onPublish }: AdRequestCardProps) => {
-  const imageUrl = adRequest.base_ad_creative.remote_image_url
+  const imageUrl = adRequest.base_ad_creative.image_url
   const statusConfig = STATUS_CONFIG[adRequest.status] ?? { label: adRequest.status, variant: "outline" as const }
 
   return (
@@ -84,8 +85,10 @@ export const AdRequestCard = ({ adRequest, onPublish }: AdRequestCardProps) => {
           )}
 
           {adRequest.status !== "draft" && (
-            <Button variant="outline" size="lg" className="w-full rounded-full border-foreground/30 sm:w-auto">
-              Ver Estatísticas
+            <Button variant="outline" size="lg" className="w-full rounded-full border-foreground/30 sm:w-auto" asChild>
+              <Link href={`/anuncios/${adRequest.id}/estatisticas`}>
+                Ver Estatísticas
+              </Link>
             </Button>
           )}
 

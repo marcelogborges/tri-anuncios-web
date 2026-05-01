@@ -53,16 +53,17 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     authHeaders["Authorization"] = `Bearer ${token}`
   }
 
+  const isFormData = body instanceof FormData
   const response = await fetch(`${API_URL}${path}`, {
     method,
     cache,
     credentials,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...authHeaders,
       ...headers,
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   })
 
   const authorizationHeader = response.headers.get("Authorization")

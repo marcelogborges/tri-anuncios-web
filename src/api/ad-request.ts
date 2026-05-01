@@ -14,7 +14,7 @@ export type AdRequestBaseAdCreative = {
   id: number
   name: string
   product_service: string | null
-  remote_image_url: string | null
+  image_url: string | null
 }
 
 export type AdRequestAdPackage = {

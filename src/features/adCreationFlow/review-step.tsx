@@ -53,7 +53,7 @@ const Row = ({
 )
 
 export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }: Props) => {
-  const { adBasicInfo, adMessage, socialClasses, audience, geoLocation, optimizationGoal } = flow
+  const { adBasicInfo, adImage, adMessage, socialClasses, audience, geoLocation, optimizationGoal } = flow
 
   return (
     <Card className="mx-auto mt-6 mb-12 w-full max-w-lg border-none shadow-none">
@@ -81,15 +81,24 @@ export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }:
           </>
         )}
 
+        {adImage && (
+          <Row
+            label="Imagem"
+            value={adImage.type === "file" ? `📎 ${adImage.fileName}` : adImage.url}
+            step={2}
+            onEdit={onEdit}
+          />
+        )}
+
         {adMessage && (
-          <Row label="Mensagem" value={adMessage} step={2} onEdit={onEdit} />
+          <Row label="Mensagem" value={adMessage} step={3} onEdit={onEdit} />
         )}
 
         {socialClasses && socialClasses.length > 0 && (
           <Row
             label="Classes sociais"
             value={socialClasses.map((c) => SOCIAL_CLASS_LABELS[c] ?? c).join(", ")}
-            step={3}
+            step={4}
             onEdit={onEdit}
           />
         )}
@@ -99,13 +108,13 @@ export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }:
             <Row
               label="Gênero"
               value={GENDER_LABELS[audience.targetGender] ?? audience.targetGender}
-              step={4}
+              step={5}
               onEdit={onEdit}
             />
             <Row
               label="Faixa etária"
               value={`${audience.targetAgeMin} – ${audience.targetAgeMax} anos`}
-              step={4}
+              step={5}
               onEdit={onEdit}
             />
           </>
@@ -115,7 +124,7 @@ export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }:
           <Row
             label="Cidades"
             value={geoLocation.cities.map((c) => `${c.name} – ${c.state}`).join(", ")}
-            step={5}
+            step={6}
             onEdit={onEdit}
           />
         )}
@@ -125,7 +134,7 @@ export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }:
             <Row
               label="Objetivo"
               value={OBJECTIVE_LABELS[optimizationGoal.objective] ?? optimizationGoal.objective}
-              step={6}
+              step={7}
               onEdit={onEdit}
             />
             <Row
@@ -135,7 +144,7 @@ export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }:
                   ? formatPhoneDisplay(optimizationGoal.link)
                   : optimizationGoal.link
               }
-              step={6}
+              step={7}
               onEdit={onEdit}
             />
           </>

@@ -92,8 +92,18 @@ Regras:
 - nao usar `function`
 - usar apenas arrow functions, como `const myFunction = () => {}`
 - nao usar `.then()` / `.catch()` em promises; usar `async` / `await` com `try` / `catch`
+- nao usar `Promise.allSettled`; usar `await` individuais com `try` / `catch` separados
 - nao fazer chamadas HTTP diretamente em componentes
 - nao colocar regra de backend dentro da UI
 - preferir nomes claros e orientados ao dominio
 - evitar abstracoes cedo demais
 - manter solucoes simples e consistentes com o projeto
+
+## Regras De TSX
+
+- sem comentarios dentro do JSX (`{/* ... */}`)
+- sem linhas em branco dentro do bloco JSX retornado
+- sempre uma linha em branco antes e depois de blocos de codigo fora do JSX (entre declaracoes de variaveis, funcoes, hooks, return)
+- nunca declarar `const`, `let` ou funcoes dentro do JSX (ex: dentro de `.map`); extrair para variaveis ou funcoes antes do `return`
+- um unico componente exportado por arquivo
+- nunca usar IIFE dentro do JSX; calcular valores antes do `return` e usar condicionais simples no JSX
