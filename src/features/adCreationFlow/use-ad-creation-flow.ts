@@ -1,22 +1,19 @@
 import { useState, useEffect, useCallback } from "react"
 import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
-import type { AudienceDemographics } from "@/features/adCreationFlow/audience-step"
 import type { GeoLocationData } from "@/features/adCreationFlow/geo-location-step"
 
 const STORAGE_KEY = "tri-anuncios:ad-creation-flow"
 
 export type AdImageData =
-  | { type: "file"; fileName: string }
-  | { type: "url"; url: string }
+  | { type: "file"; feedFileName: string; feedPreviewUrl: string; storyFileName?: string; storyPreviewUrl?: string }
+  | { type: "generated"; dataUrl: string }
 
 export type AdCreationFlowState = {
   step: number
   adBasicInfo: AdBasicInfo | null
   adImage: AdImageData | null
   adMessage: string | null
-  socialClasses: string[] | null
-  audience: AudienceDemographics | null
   geoLocation: GeoLocationData | null
   optimizationGoal: AdObjectiveData | null
 }
@@ -26,8 +23,6 @@ const DEFAULT_STATE: AdCreationFlowState = {
   adBasicInfo: null,
   adImage: null,
   adMessage: null,
-  socialClasses: null,
-  audience: null,
   geoLocation: null,
   optimizationGoal: null,
 }
@@ -37,7 +32,15 @@ const load = (): AdCreationFlowState => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_STATE
-    return { ...DEFAULT_STATE, ...JSON.parse(raw) }
+    const parsed = JSON.parse(raw)
+    if ("feedImage" in parsed || "storyImage" in parsed) {
+      localStorage.removeItem(STORAGE_KEY)
+      return DEFAULT_STATE
+    }
+    if (parsed.adImage?.type === "file" && "fileName" in parsed.adImage) {
+      parsed.adImage = null
+    }
+    return { ...DEFAULT_STATE, ...parsed }
   } catch {
     return DEFAULT_STATE
   }
@@ -72,5 +75,10 @@ export const useAdCreationFlow = () => {
     })
   }, [])
 
-  return { ...state, hydrated, update, clear: clearAdCreationFlow }
+  const reset = useCallback(() => {
+    clearAdCreationFlow()
+    setState({ ...DEFAULT_STATE, step: 1 })
+  }, [])
+
+  return { ...state, hydrated, update, clear: clearAdCreationFlow, reset }
 }

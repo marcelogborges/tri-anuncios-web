@@ -2,15 +2,9 @@
 
 import { Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import type { AdCreationFlowState } from "@/features/adCreationFlow/use-ad-creation-flow"
-import { SOCIAL_CLASS_LABELS, GENDER_LABELS, OBJECTIVE_LABELS } from "@/features/adCreationFlow/constants"
+import { OBJECTIVE_LABELS } from "@/features/adCreationFlow/constants"
+import { StepHeader } from "@/features/adCreationFlow/step-header"
 
 const formatPhoneDisplay = (waLink: string) => {
   const match = waLink.match(/wa\.me\/55(\d{2})(\d{5})(\d{4})/)
@@ -26,7 +20,7 @@ type Props = {
   onPublish: () => void
 }
 
-const Row = ({
+const ReviewRow = ({
   label,
   value,
   step,
@@ -37,133 +31,115 @@ const Row = ({
   step: number
   onEdit: (step: number) => void
 }) => (
-  <div className="flex items-start justify-between gap-2 border-b py-3 last:border-b-0">
-    <div className="min-w-0 flex-1">
-      <p className="text-body-sm text-muted-foreground">{label}</p>
-      <p className="text-body mt-0.5 break-words">{value}</p>
-    </div>
+  <div className="grid grid-cols-[110px_1fr_auto] items-start gap-3 py-3 border-b border-border last:border-b-0">
+    <p className="text-label-caps text-muted-foreground pt-0.5">{label}</p>
+    <p className="text-body-sm break-words">{value}</p>
     <button
       type="button"
       onClick={() => onEdit(step)}
-      className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0 p-1"
+      className="text-muted-foreground hover:text-foreground transition-colors p-1 shrink-0"
     >
       <Pencil className="h-4 w-4" />
     </button>
   </div>
 )
 
+const ReviewBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div className="rounded-lg border border-border bg-card">
+    <div className="px-5 py-4 border-b border-border">
+      <p className="text-body-sm font-semibold">{title}</p>
+    </div>
+    <div className="px-5">{children}</div>
+  </div>
+)
+
+const feedImageLabel = (image: AdCreationFlowState["adImage"]): string => {
+  if (!image) return "—"
+  if (image.type === "file") return `📎 ${image.feedFileName}`
+  return "🖼 Imagem gerada por IA"
+}
+
+const storyImageLabel = (image: AdCreationFlowState["adImage"]): string | null => {
+  if (!image || image.type === "generated") return null
+  return image.storyFileName ? `📎 ${image.storyFileName}` : null
+}
+
 export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }: Props) => {
-  const { adBasicInfo, adImage, adMessage, socialClasses, audience, geoLocation, optimizationGoal } = flow
+  const { adBasicInfo, adImage, adMessage, geoLocation, optimizationGoal } = flow
+
+  const feedLabel = feedImageLabel(adImage)
+  const storyLabel = storyImageLabel(adImage)
 
   return (
-    <Card className="mx-auto mt-6 mb-12 w-full max-w-lg border-none shadow-none">
-      <CardHeader>
-        <CardTitle className="text-heading">Revise seu Anúncio</CardTitle>
-        <CardDescription>
-          Confira os dados antes de enviar
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col">
-        {adBasicInfo && (
-          <>
-            <Row
-              label="Nome do anúncio"
-              value={adBasicInfo.name}
-              step={1}
+    <div className="mx-auto w-full max-w-xl px-8 py-8">
+      <StepHeader
+        eyebrow="PASSO 6 · REVISÃO"
+        title="Tudo certo?"
+        subtitle="Confira os dados antes de publicar."
+      />
+      <div className="flex flex-col gap-4">
+        <ReviewBlock title="Criativo">
+          {adBasicInfo && (
+            <>
+              <ReviewRow label="Nome" value={adBasicInfo.name} step={1} onEdit={onEdit} />
+              <ReviewRow label="Produto" value={adBasicInfo.productService} step={1} onEdit={onEdit} />
+            </>
+          )}
+          {adMessage && (
+            <ReviewRow label="Mensagem" value={adMessage} step={2} onEdit={onEdit} />
+          )}
+          <ReviewRow label="Imagem feed" value={feedLabel} step={3} onEdit={onEdit} />
+          {storyLabel && (
+            <ReviewRow label="Imagem story" value={storyLabel} step={3} onEdit={onEdit} />
+          )}
+        </ReviewBlock>
+
+        <ReviewBlock title="Localização">
+          {geoLocation && geoLocation.cities.length > 0 ? (
+            <ReviewRow
+              label="Cidades"
+              value={geoLocation.cities.map((c) => `${c.name} · ${c.state}`).join(", ")}
+              step={4}
               onEdit={onEdit}
             />
-            <Row
-              label="Produto / Serviço"
-              value={adBasicInfo.productService}
-              step={1}
-              onEdit={onEdit}
-            />
-          </>
-        )}
-
-        {adImage && (
-          <Row
-            label="Imagem"
-            value={adImage.type === "file" ? `📎 ${adImage.fileName}` : adImage.url}
-            step={2}
-            onEdit={onEdit}
-          />
-        )}
-
-        {adMessage && (
-          <Row label="Mensagem" value={adMessage} step={3} onEdit={onEdit} />
-        )}
-
-        {socialClasses && socialClasses.length > 0 && (
-          <Row
-            label="Classes sociais"
-            value={socialClasses.map((c) => SOCIAL_CLASS_LABELS[c] ?? c).join(", ")}
-            step={4}
-            onEdit={onEdit}
-          />
-        )}
-
-        {audience && (
-          <>
-            <Row
-              label="Gênero"
-              value={GENDER_LABELS[audience.targetGender] ?? audience.targetGender}
-              step={5}
-              onEdit={onEdit}
-            />
-            <Row
-              label="Faixa etária"
-              value={`${audience.targetAgeMin} – ${audience.targetAgeMax} anos`}
-              step={5}
-              onEdit={onEdit}
-            />
-          </>
-        )}
-
-        {geoLocation && geoLocation.cities.length > 0 && (
-          <Row
-            label="Cidades"
-            value={geoLocation.cities.map((c) => `${c.name} – ${c.state}`).join(", ")}
-            step={6}
-            onEdit={onEdit}
-          />
-        )}
+          ) : (
+            <ReviewRow label="Cidades" value="Brasil (amplo)" step={4} onEdit={onEdit} />
+          )}
+        </ReviewBlock>
 
         {optimizationGoal && (
-          <>
-            <Row
+          <ReviewBlock title="Objetivo">
+            <ReviewRow
               label="Objetivo"
               value={OBJECTIVE_LABELS[optimizationGoal.objective] ?? optimizationGoal.objective}
-              step={7}
+              step={5}
               onEdit={onEdit}
             />
-            <Row
+            <ReviewRow
               label={optimizationGoal.objective === "lead_generation" ? "WhatsApp" : "Link"}
               value={
                 optimizationGoal.objective === "lead_generation"
                   ? formatPhoneDisplay(optimizationGoal.link)
                   : optimizationGoal.link
               }
-              step={7}
+              step={5}
               onEdit={onEdit}
             />
-          </>
+          </ReviewBlock>
         )}
 
-        <div className="mt-6 flex flex-col gap-3">
-          <Button className="w-full" onClick={onPublish} disabled={submitting}>
-            {submitting ? "Criando..." : "Publicar Agora"}
+        <div className="flex flex-col items-center gap-3 pt-4">
+          <Button className="w-full rounded-full" onClick={onPublish} disabled={submitting}>
+            {submitting ? "Criando..." : "🚀 Publicar agora"}
           </Button>
-          <Button
-            className="w-full"
-            variant="outline"
-            onClick={onSaveDraft}
-            disabled={submitting}
-          >
-            Salvar Rascunho
+          <Button className="w-full rounded-full" variant="outline" onClick={onSaveDraft} disabled={submitting}>
+            Salvar rascunho
           </Button>
+          <p className="text-label-caps text-muted-foreground">
+            Você escolhe o pacote na próxima etapa.
+          </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

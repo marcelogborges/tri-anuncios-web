@@ -28,6 +28,7 @@ body {
     --destructive: #ba1a1a;
     --destructive-foreground: #ffffff;
     --border: #bbcabf;
+    --border-strong: #8fa89a;
     --input: #f3f4f6;
     --ring: #006c49;
     --chart-1: #10b981;
@@ -68,6 +69,7 @@ body {
     --destructive: #ffb4ab;
     --destructive-foreground: #690005;
     --border: #3c4a42;
+    --border-strong: #5a7a6a;
     --input: #3c4a42;
     --ring: #4edea3;
     --chart-1: #4edea3;
@@ -158,6 +160,11 @@ body {
     font-weight: 500;
     line-height: 1rem;
   }
+}
+
+/* Ad creation flow — right preview pane background */
+.ad-creation-preview {
+  background: linear-gradient(180deg, #f0f3f1 0%, #e6ece9 100%);
 }
 
 /* Featured plan card — dark green gradient */

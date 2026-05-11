@@ -6,8 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import { AuthGuard } from "@/lib/auth-guard"
 import { useAuth } from "@/lib/auth-context"
 import { Layout } from "@/components/layout"
-import { Progress } from "@/components/ui/progress"
-import { Button } from "@/components/ui/button"
+import { AdPreview } from "@/features/adCreationFlow/ad-preview"
 import { getOrganization } from "@/api/organization"
 import type { Organization } from "@/api/organization"
 import { createBaseAdCreative } from "@/api/base-ad-creative"
@@ -19,9 +18,6 @@ import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
 import { AdImageStep } from "@/features/adCreationFlow/ad-image-step"
 import type { AdImageData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { AdMessageStep } from "@/features/adCreationFlow/ad-message-step"
-import { SocialClassStep } from "@/features/adCreationFlow/social-class-step"
-import { AudienceStep } from "@/features/adCreationFlow/audience-step"
-import type { AudienceDemographics } from "@/features/adCreationFlow/audience-step"
 import { GeoLocationStep } from "@/features/adCreationFlow/geo-location-step"
 import type { GeoLocationData } from "@/features/adCreationFlow/geo-location-step"
 import { AdObjectiveStep } from "@/features/adCreationFlow/ad-objective-step"
@@ -30,7 +26,7 @@ import { ReviewStep } from "@/features/adCreationFlow/review-step"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
 
-const TOTAL_STEPS = 8
+const TOTAL_STEPS = 6
 
 const CriarAnuncioPage = () => {
   const router = useRouter()
@@ -40,7 +36,9 @@ const CriarAnuncioPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [createdAdRequestId, setCreatedAdRequestId] = useState<number | null>(null)
-  const [adImageFile, setAdImageFile] = useState<File | null>(null)
+  const [adFeedImageFile, setAdFeedImageFile] = useState<File | null>(null)
+  const [adStoryImageFile, setAdStoryImageFile] = useState<File | null>(null)
+  const [livePreview, setLivePreview] = useState<{ name?: string; message?: string; feedImageUrl?: string; storyImageUrl?: string; link?: string }>({})
   const flow = useAdCreationFlow()
 
   const fetchOrganization = useCallback(async () => {
@@ -73,33 +71,34 @@ const CriarAnuncioPage = () => {
     flow.update({ adBasicInfo: data, step: 2 })
   }
 
-  const handleImageComplete = (data: AdImageData, file?: File) => {
-    if (file) setAdImageFile(file)
-    flow.update({ adImage: data, step: 3 })
+  const handleImageComplete = (image: AdImageData, feedFile: File | null, storyFile: File | null) => {
+    setAdFeedImageFile(feedFile)
+    setAdStoryImageFile(storyFile)
+    flow.update({ adImage: image, step: 4 })
   }
 
   const handleMessageComplete = (message: string) => {
-    flow.update({ adMessage: message, step: 4 })
-  }
-
-  const handleSocialClassComplete = (classes: string[]) => {
-    flow.update({ socialClasses: classes, step: 5 })
-  }
-
-  const handleAudienceComplete = (data: AudienceDemographics) => {
-    flow.update({ audience: data, step: 6 })
+    flow.update({ adMessage: message, step: 3 })
   }
 
   const handleGeoLocationComplete = (data: GeoLocationData) => {
-    flow.update({ geoLocation: data, step: 7 })
+    flow.update({ geoLocation: data, step: 5 })
   }
 
   const handleObjectiveComplete = (data: AdObjectiveData) => {
-    flow.update({ optimizationGoal: data, step: 8 })
+    flow.update({ optimizationGoal: data, step: 6 })
   }
 
   const handleEditStep = (step: number) => {
     flow.update({ step })
+  }
+
+  const handleBack = () => {
+    if (flow.step <= 1) {
+      router.push("/anuncios")
+    } else {
+      flow.update({ step: flow.step - 1 })
+    }
   }
 
   const buildCreativePayload = (): CreateBaseAdCreativePayload => ({
@@ -109,10 +108,6 @@ const CriarAnuncioPage = () => {
     message: flow.adMessage ?? undefined,
     optimization_goal: flow.optimizationGoal?.objective ?? undefined,
     link: flow.optimizationGoal?.link ?? undefined,
-    target_gender: flow.audience?.targetGender ?? undefined,
-    target_age_min: flow.audience?.targetAgeMin ?? undefined,
-    target_age_max: flow.audience?.targetAgeMax ?? undefined,
-    target_social_classes: flow.socialClasses ?? undefined,
     geo_locations: flow.geoLocation
       ? {
           countries: ["BR"],
@@ -120,13 +115,15 @@ const CriarAnuncioPage = () => {
           location_types: ["home", "recent"],
         }
       : undefined,
-    remote_image_url: flow.adImage?.type === "url" ? flow.adImage.url : undefined,
   })
 
   const createDraftAdRequest = async () => {
     if (!user) return null
-    const file = flow.adImage?.type === "file" ? adImageFile ?? undefined : undefined
-    const creative = await createBaseAdCreative(buildCreativePayload(), file)
+    const creative = await createBaseAdCreative(
+      buildCreativePayload(),
+      adFeedImageFile ?? undefined,
+      adStoryImageFile ?? adFeedImageFile ?? undefined
+    )
     const adRequest = await createAdRequest({
       organization_id: user.organization_id,
       user_id: user.id,
@@ -171,12 +168,7 @@ const CriarAnuncioPage = () => {
     router.push("/anuncios")
   }
 
-  const handleBack = () => {
-    if (flow.step <= 1) return
-    flow.update({ step: flow.step - 1 })
-  }
-
-  const progressValue = (flow.step / TOTAL_STEPS) * 100
+  const STEP_NAMES = ["", "Básico", "Mensagem", "Criativo", "Localização", "Objetivo", "Revisão"]
 
   const renderStep = () => {
     if (loading || !flow.hydrated) {
@@ -200,48 +192,43 @@ const CriarAnuncioPage = () => {
           <AdBasicInfoStep
             initialValues={flow.adBasicInfo}
             onComplete={handleBasicInfoComplete}
+            onLiveChange={(name) => setLivePreview((p) => ({ ...p, name }))}
           />
         )
       case 2:
         return (
-          <AdImageStep
-            initialValues={flow.adImage}
-            onComplete={handleImageComplete}
+          <AdMessageStep
+            initialValue={flow.adMessage}
+            adName={flow.adBasicInfo?.name}
+            adProductService={flow.adBasicInfo?.productService}
+            onComplete={handleMessageComplete}
+            onLiveChange={(message) => setLivePreview((p) => ({ ...p, message }))}
           />
         )
       case 3:
         return (
-          <AdMessageStep
-            initialValue={flow.adMessage}
-            onComplete={handleMessageComplete}
+          <AdImageStep
+            initialValue={flow.adImage}
+            adMessage={flow.adMessage}
+            adName={flow.adBasicInfo?.name}
+            adProductService={flow.adBasicInfo?.productService}
+            onComplete={handleImageComplete}
+            onLiveChange={(feedUrl, storyUrl) => setLivePreview((p) => ({ ...p, feedImageUrl: feedUrl ?? undefined, storyImageUrl: storyUrl ?? undefined }))}
           />
         )
       case 4:
-        return (
-          <SocialClassStep
-            initialValues={flow.socialClasses}
-            onComplete={handleSocialClassComplete}
-          />
-        )
-      case 5:
-        return (
-          <AudienceStep
-            initialValues={flow.audience}
-            onComplete={handleAudienceComplete}
-          />
-        )
-      case 6:
         return (
           <GeoLocationStep
             initialValues={flow.geoLocation}
             onComplete={handleGeoLocationComplete}
           />
         )
-      case 7:
+      case 5:
         return (
           <AdObjectiveStep
             initialValues={flow.optimizationGoal}
             onComplete={handleObjectiveComplete}
+            onLiveChange={(link) => setLivePreview((p) => ({ ...p, link: link ?? undefined }))}
           />
         )
       default:
@@ -257,30 +244,63 @@ const CriarAnuncioPage = () => {
     }
   }
 
+  const currentStep = Math.min(Math.max(flow.step, 1), TOTAL_STEPS)
+
   return (
     <AuthGuard>
       <Layout>
-        {!loading && flow.hydrated && (
-          <div className="mx-auto w-full max-w-lg px-4 pt-6">
-            <div className="flex items-center gap-3">
-              {flow.step > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleBack}
-                  className="shrink-0"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              )}
-              <Progress value={progressValue} className="flex-1" />
-              <span className="text-body-sm text-muted-foreground shrink-0">
-                {flow.step}/{TOTAL_STEPS}
-              </span>
-            </div>
+        <div className="grid gap-0 lg:grid-cols-[1fr_520px]">
+          <div className="min-w-0">
+            {!loading && flow.hydrated && (
+              <div className="px-8 pt-6 pb-2">
+                <div className="flex gap-1.5">
+                  {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+                    <div
+                      key={i}
+                      className="h-1 flex-1 rounded-full transition-colors"
+                      style={{ background: i < currentStep ? "var(--primary)" : "var(--border)" }}
+                    />
+                  ))}
+                </div>
+                <div className="mt-1.5 flex justify-between items-center">
+                  {flow.step > 0 ? (
+                    <button
+                      onClick={handleBack}
+                      className="flex items-center gap-1 text-label-caps text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                      Voltar
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={flow.reset}
+                      className="text-label-caps text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      Recomeçar
+                    </button>
+                    <span className="text-label-caps text-muted-foreground">
+                      {STEP_NAMES[currentStep]}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {renderStep()}
           </div>
-        )}
-        {renderStep()}
+          <div className="ad-creation-preview hidden border-l border-border lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)] lg:items-start lg:justify-center">
+            <AdPreview
+              name={livePreview.name ?? flow.adBasicInfo?.name}
+              message={livePreview.message ?? flow.adMessage ?? undefined}
+              feedImageUrl={livePreview.feedImageUrl}
+              storyImageUrl={livePreview.storyImageUrl}
+              organizationName={organization?.name}
+              link={livePreview.link ?? flow.optimizationGoal?.link}
+            />
+          </div>
+        </div>
         <PublishAdModal
           adRequestId={createdAdRequestId}
           open={publishModalOpen}

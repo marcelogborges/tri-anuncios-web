@@ -32,7 +32,8 @@ The palette is Emerald-focused to signal success and vitality:
 
 - **Primary:** Emerald Green (`#006c49`) for all primary actions, progress indicators, and active states.
 - **Primary Container:** Bright Emerald (`#10b981`) for filled containers and badges.
-- **Secondary:** Deep Forest (`#2b6954`) for high-contrast text and navigation elements.
+- **Secondary (text/nav):** Deep Forest (`#2b6954`) for high-contrast text, navigation elements, and `secondary-foreground`. Not used as a fill color.
+- **Secondary Container (fill):** Soft Mint (`#adedd3`) for structural fills, chip backgrounds, and the `secondary` CSS token. This is what `bg-secondary` renders.
 - **Tertiary:** Muted Sage (`#416656`) for supporting elements.
 - **Error:** Standard red (`#ba1a1a`) for destructive actions.
 - **Neutral:** A strict range of whites (`#ffffff`) and light grays (`#f8f9fa`, `#f3f4f5`, `#edeeef`) to maintain a clean, organized environment.
@@ -47,8 +48,8 @@ Semantic token mapping:
 - `card-foreground`: text on cards (`on-surface`)
 - `primary`: main CTA, active navigation, focus accents
 - `primary-foreground`: text on primary surfaces
-- `secondary`: soft mint structural fill (`secondary-container`)
-- `secondary-foreground`: text on mint fills (`on-secondary-container`)
+- `secondary`: soft mint structural fill — `#adedd3` (`secondary-container`)
+- `secondary-foreground`: text on mint fills — Deep Forest `#2b6954` (`on-secondary-container`)
 - `accent`: hover and selected-neutral emphasis (`surface-container-high`)
 - `accent-foreground`: text/icons on accent surfaces
 - `muted`: low-contrast panels and grouped controls (`surface-container`)
@@ -104,6 +105,11 @@ This design system avoids heavy shadows in favor of **Tonal Layers** and **Low-C
 - **Active State:** Elements should "lift" using the Level 2 shadow and a 2px Emerald border.
 
 Default ambient shadow: `0 10px 20px rgba(6, 78, 59, 0.04)`
+
+Extended tokens (for ad creation flow and similar surfaces):
+
+- `--primary-soft`: `#e6f4ee` — light emerald tint for selected state backgrounds and chip fills
+- `--border-strong`: `#bbcabf` — stronger outline for interactive borders needing more contrast than `outline-variant`
 
 ## Component Rules
 

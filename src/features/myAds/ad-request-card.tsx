@@ -1,8 +1,12 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import type { AdRequest, AdRequestStatus } from "@/api/ad-request"
+import { getPlatformPublicationInsights, type InsightsData } from "@/api/platform-publication"
 
 const timeAgo = (dateStr: string): string => {
   const now = Date.now()
@@ -19,82 +23,108 @@ const timeAgo = (dateStr: string): string => {
   return `há ${months} ${months > 1 ? "meses" : "mês"}`
 }
 
-const STATUS_CONFIG: Record<AdRequestStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "tertiary" }> = {
-  draft: { label: "Rascunho", variant: "secondary" },
-  pending_publication: { label: "Processando", variant: "secondary" },
-  processing: { label: "Processando", variant: "tertiary" },
-  partially_published: { label: "Parcialmente publicado", variant: "tertiary" },
-  published: { label: "Publicado", variant: "default" },
-  failed: { label: "Falhou", variant: "destructive" },
-  rejected: { label: "Rejeitado", variant: "destructive" },
-  cancelled: { label: "Cancelado", variant: "secondary" },
+type StatusInfo = {
+  label: string
+  isLive: boolean
 }
 
+const STATUS_INFO: Record<AdRequestStatus, StatusInfo> = {
+  published: { label: "Ao vivo", isLive: true },
+  partially_published: { label: "Ao vivo", isLive: true },
+  draft: { label: "Rascunho", isLive: false },
+  pending_publication: { label: "Processando", isLive: false },
+  processing: { label: "Processando", isLive: false },
+  failed: { label: "Encerrado", isLive: false },
+  rejected: { label: "Encerrado", isLive: false },
+  cancelled: { label: "Encerrado", isLive: false },
+}
 
 type AdRequestCardProps = {
   adRequest: AdRequest
-  onPublish?: (adRequest: AdRequest) => void
+  orgName: string
 }
 
-export const AdRequestCard = ({ adRequest, onPublish }: AdRequestCardProps) => {
-  const imageUrl = adRequest.base_ad_creative.image_url
-  const statusConfig = STATUS_CONFIG[adRequest.status] ?? { label: adRequest.status, variant: "outline" as const }
+export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
+  const imageUrl = adRequest.base_ad_creative?.feed_image_url ?? adRequest.base_ad_creative?.story_image_url
+  const adName = adRequest.base_ad_creative?.name ?? ""
+  const hasImage = Boolean(imageUrl)
+  const isDraft = adRequest.status === "draft"
+  const isProcessing = adRequest.status === "processing" || adRequest.status === "pending_publication"
+  const statusInfo = STATUS_INFO[adRequest.status] ?? { label: adRequest.status, isLive: false }
+  const pubCount = adRequest.platform_publications?.length ?? 0
+
+  const metaPublication = adRequest.platform_publications?.find(p => p.provider === "meta")
+  const [insights, setInsights] = useState<InsightsData | null>(null)
+
+  useEffect(() => {
+    if (!statusInfo.isLive || !metaPublication) return
+    getPlatformPublicationInsights(metaPublication.id).then(res => {
+      const data = res.data
+      if (data && Object.keys(data).length > 0) setInsights(data as InsightsData)
+    }).catch(() => {})
+  }, [metaPublication?.id, statusInfo.isLive])
+
+  const metaText = isDraft
+    ? `Nunca publicado · criado ${timeAgo(adRequest.created_at)}`
+    : isProcessing
+      ? "Processando..."
+      : `${pubCount} ${pubCount !== 1 ? "publicações" : "publicação"} · criado ${timeAgo(adRequest.created_at)}`
+
+  const imageContent = hasImage ? (
+    <img src={imageUrl!} alt={adName} className="object-cover w-full h-full" />
+  ) : (
+    <div className="flex items-center justify-center w-full h-full bg-muted">
+      <ImageIcon className="w-8 h-8 text-muted-foreground" />
+    </div>
+  )
+
+  const statusPill = (
+    <span className={cn(
+      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium shrink-0",
+      statusInfo.isLive
+        ? "bg-secondary text-primary"
+        : "bg-muted text-muted-foreground"
+    )}>
+      {statusInfo.isLive && (
+        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+      )}
+      {statusInfo.label}
+    </span>
+  )
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border bg-white sm:flex-row sm:items-center sm:gap-5 sm:overflow-visible sm:border sm:px-5 sm:py-4">
-      <div className="relative sm:contents">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={adRequest.base_ad_creative.name}
-            className="h-36 w-full object-cover sm:h-28 sm:w-28 sm:shrink-0 sm:rounded-lg"
-          />
-        ) : (
-          <div className="flex h-36 w-full items-center justify-center bg-muted sm:h-28 sm:w-28 sm:shrink-0 sm:rounded-lg">
-            <ImageIcon className="size-10 text-muted-foreground" />
+    <Link href={`/anuncios/${adRequest.id}`} className="block h-full">
+      <div className="h-full flex flex-col bg-card rounded-lg border border-border hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_10px_20px_rgba(6,78,59,0.08)] transition-all duration-200">
+        <div className="relative w-full aspect-video overflow-hidden rounded-t-lg shrink-0">
+          {imageContent}
+        </div>
+        <div className="p-5 flex flex-col flex-1 gap-3">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-bold text-base line-clamp-2">{adName}</p>
+            {statusPill}
           </div>
-        )}
-        <Badge variant={statusConfig.variant} className="absolute bottom-2 left-2 text-xs sm:hidden">
-          {statusConfig.label}
-        </Badge>
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-1 p-4 sm:p-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="truncate font-bold">
-            {adRequest.base_ad_creative.name}
-          </p>
-          <Badge variant={statusConfig.variant} className="hidden shrink-0 text-xs sm:inline-flex">
-            {statusConfig.label}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Anúncio criado {timeAgo(adRequest.created_at)}
-        </p>
-
-        <div className="mt-3 flex items-center gap-3">
-          {adRequest.status === "draft" && onPublish && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full rounded-full border-foreground/30 sm:w-auto"
-              onClick={() => onPublish(adRequest)}
-            >
-              Publicar
-            </Button>
+          <p className="text-sm text-muted-foreground">{metaText}</p>
+          {!isDraft && (
+            <div className="grid grid-cols-2 rounded-md overflow-hidden">
+              <div className="p-3 bg-primary-soft border-r border-primary/10">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Impressões</p>
+                <p className="font-bold text-2xl text-primary">
+                  {insights ? new Intl.NumberFormat("pt-BR").format(insights.impressions) : "—"}
+                </p>
+              </div>
+              <div className="p-3 bg-primary-soft">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Cliques</p>
+                <p className="font-bold text-2xl text-primary">
+                  {insights ? new Intl.NumberFormat("pt-BR").format(insights.clicks) : "—"}
+                </p>
+              </div>
+            </div>
           )}
-
-          {adRequest.status !== "draft" && (
-            <Button variant="outline" size="lg" className="w-full rounded-full border-foreground/30 sm:w-auto" asChild>
-              <Link href={`/anuncios/${adRequest.id}/estatisticas`}>
-                Ver Estatísticas
-              </Link>
-            </Button>
-          )}
-
-
+          <div className="mt-auto border-t border-border pt-[14px]">
+            <Button className="w-full rounded-full">Ver detalhes</Button>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }

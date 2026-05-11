@@ -13,12 +13,12 @@ import { DATE_PRESETS, STATUS_CONFIG, PLATFORM_LABELS, PLATFORM_ICONS, ALL_PLATF
 import { formatBR, formatBRL, isEmptyInsights } from "./formatters"
 import { Breadcrumb } from "./components/breadcrumb"
 import { PulseDot } from "./components/pulse-dot"
-import { KpiCard } from "./components/kpi-card"
-import { KpiHero } from "./components/kpi-hero"
 import { DailyChart } from "./components/daily-chart"
 import { DailyChartEmpty } from "./components/daily-chart-empty"
 import { InsightsSkeleton } from "./components/insights-skeleton"
 import { InsightsEmptyState } from "./components/insights-empty-state"
+import { KpiCard } from "./components/kpi-card"
+import { KpiHero } from "./components/kpi-hero"
 
 type Props = { adRequest: AdRequest }
 
@@ -31,7 +31,7 @@ export function AdStatistics({ adRequest }: Props) {
 
   const metaPublication = adRequest.platform_publications.find((p) => p.provider === "meta")
   const statusConfig = STATUS_CONFIG[adRequest.status] ?? { label: adRequest.status, variant: "outline" as const }
-  const imageUrl = adRequest.base_ad_creative.image_url
+  const imageUrl = adRequest.base_ad_creative.feed_image_url ?? adRequest.base_ad_creative.story_image_url
 
   const loadInsights = async (preset: DatePreset) => {
     if (!metaPublication) return

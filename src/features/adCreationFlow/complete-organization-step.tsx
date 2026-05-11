@@ -63,7 +63,7 @@ export const CompleteOrganizationStep = ({ organization, onComplete }: Props) =>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <label htmlFor="sector" className="text-body-sm">
+              <label htmlFor="sector" className="text-base font-semibold text-primary">
                 Setor de atuação
               </label>
               <Input
@@ -77,7 +77,7 @@ export const CompleteOrganizationStep = ({ organization, onComplete }: Props) =>
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="niche" className="text-body-sm">
+              <label htmlFor="niche" className="text-base font-semibold text-primary">
                 Nicho específico
               </label>
               <Input

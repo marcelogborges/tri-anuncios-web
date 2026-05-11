@@ -8,6 +8,8 @@ export type AdPackage = {
   duration_days: number
   platform_providers: string[]
   active: boolean
+  created_at: string
+  updated_at: string
 }
 
 type AdPackagesResponse = {

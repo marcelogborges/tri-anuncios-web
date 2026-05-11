@@ -35,6 +35,7 @@ const config: Config = {
   				DEFAULT: 'var(--popover)',
   				foreground: 'var(--popover-foreground)'
   			},
+  			'primary-soft': 'var(--primary-soft)',
   			primary: {
   				DEFAULT: 'var(--primary)',
   				foreground: 'var(--primary-foreground)'

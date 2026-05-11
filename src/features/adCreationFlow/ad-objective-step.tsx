@@ -3,15 +3,10 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { OBJECTIVE_OPTIONS } from "@/features/adCreationFlow/constants"
+import { CardOption } from "@/features/adCreationFlow/card-option"
+import { StepHeader } from "@/features/adCreationFlow/step-header"
 
 export type AdObjective = (typeof OBJECTIVE_OPTIONS)[number]["value"]
 
@@ -23,6 +18,7 @@ export type AdObjectiveData = {
 type Props = {
   initialValues?: AdObjectiveData | null
   onComplete: (data: AdObjectiveData) => void
+  onLiveChange?: (link: string | null) => void
 }
 
 const formatPhone = (raw: string) => {
@@ -34,10 +30,8 @@ const formatPhone = (raw: string) => {
 
 const phoneToDigits = (value: string) => value.replace(/\D/g, "")
 
-export const AdObjectiveStep = ({ initialValues, onComplete }: Props) => {
-  const [selected, setSelected] = useState<AdObjective | null>(
-    initialValues?.objective ?? null
-  )
+export const AdObjectiveStep = ({ initialValues, onComplete, onLiveChange }: Props) => {
+  const [selected, setSelected] = useState<AdObjective | null>(initialValues?.objective ?? null)
   const [link, setLink] = useState(initialValues?.link ?? "")
   const [phone, setPhone] = useState(() => {
     if (!initialValues?.link) return ""
@@ -66,95 +60,86 @@ export const AdObjectiveStep = ({ initialValues, onComplete }: Props) => {
     return phoneToDigits(phone).length === 11
   }
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value)
+    setPhone(formatted)
+    const digits = phoneToDigits(formatted)
+    if (digits.length === 11) onLiveChange?.(`https://wa.me/55${digits}`)
+  }
+
   const handleSubmit = () => {
     if (!selected) return
     const finalLink =
       selected === "lead_generation"
         ? `https://wa.me/55${phoneToDigits(phone)}`
         : link
-
     onComplete({ objective: selected, link: finalLink })
   }
 
   return (
-    <Card className="mx-auto mt-6 w-full max-w-lg border-none shadow-none">
-      <CardHeader>
-        <CardTitle className="text-heading">Objetivo do Anúncio</CardTitle>
-        <CardDescription>
-          Escolha o que você espera alcançar com esse anúncio
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {OBJECTIVE_OPTIONS.map((opt) => {
-          const Icon = opt.icon
-          const isSelected = selected === opt.value
-
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => handleSelect(opt.value)}
-              className={cn(
-                "flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors",
-                isSelected
-                  ? "border-emerald-600 bg-emerald-50"
-                  : "border-muted hover:border-emerald-300"
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                  isSelected
-                    ? "bg-emerald-600 text-white"
-                    : "bg-muted text-muted-foreground"
+    <div className="mx-auto w-full max-w-xl px-8 py-8">
+      <StepHeader
+        eyebrow="PASSO 5 · OBJETIVO"
+        title="Qual é o objetivo do anúncio?"
+        subtitle="Escolha o que você espera alcançar com esse anúncio."
+      />
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          {OBJECTIVE_OPTIONS.map((opt) => {
+            const Icon = opt.icon
+            return (
+              <div key={opt.value}>
+                <CardOption
+                  icon={<Icon className="h-5 w-5" />}
+                  title={opt.label}
+                  description={opt.description}
+                  selected={selected === opt.value}
+                  onClick={() => handleSelect(opt.value)}
+                />
+                {selected === opt.value && opt.value === "link_clicks" && (
+                  <div className="mt-2 flex flex-col gap-2 pl-2">
+                    <label htmlFor="site-link" className="text-base font-semibold text-primary">
+                      Link do site
+                    </label>
+                    <Input
+                      id="site-link"
+                      type="url"
+                      placeholder="https://www.seusite.com.br"
+                      value={link}
+                      onChange={(e) => { setLink(e.target.value); onLiveChange?.(e.target.value) }}
+                      className={cn(
+                        "rounded-md focus-visible:ring-0 focus-visible:shadow-[0_0_0_3px_var(--primary-soft)] focus-visible:border-primary"
+                      )}
+                    />
+                  </div>
                 )}
-              >
-                <Icon className="h-5 w-5" />
+                {selected === opt.value && opt.value === "lead_generation" && (
+                  <div className="mt-2 flex flex-col gap-2 pl-2">
+                    <label htmlFor="whatsapp-phone" className="text-base font-semibold text-primary">
+                      Número do WhatsApp
+                    </label>
+                    <Input
+                      id="whatsapp-phone"
+                      type="tel"
+                      placeholder="(51) 99999-9999"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      className="rounded-md focus-visible:ring-0 focus-visible:shadow-[0_0_0_3px_var(--primary-soft)] focus-visible:border-primary"
+                    />
+                  </div>
+                )}
               </div>
-              <div>
-                <p className="text-body font-medium">{opt.label}</p>
-                <p className="text-body-sm text-muted-foreground">
-                  {opt.description}
-                </p>
-              </div>
-            </button>
-          )
-        })}
-
-        {selected === "link_clicks" && (
-          <div className="mt-2 flex flex-col gap-2">
-            <label htmlFor="site-link" className="text-body-sm font-medium">Link do site</label>
-            <Input
-              id="site-link"
-              type="url"
-              placeholder="https://www.seusite.com.br"
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-            />
-          </div>
-        )}
-
-        {selected === "lead_generation" && (
-          <div className="mt-2 flex flex-col gap-2">
-            <label htmlFor="whatsapp-phone" className="text-body-sm font-medium">Número do WhatsApp</label>
-            <Input
-              id="whatsapp-phone"
-              type="tel"
-              placeholder="(51) 99999-9999"
-              value={phone}
-              onChange={(e) => setPhone(formatPhone(e.target.value))}
-            />
-          </div>
-        )}
-
+            )
+          })}
+        </div>
         <Button
-          className="mt-4 w-full"
+          className="w-full rounded-full"
           disabled={!isValid()}
           onClick={handleSubmit}
         >
           Continuar
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

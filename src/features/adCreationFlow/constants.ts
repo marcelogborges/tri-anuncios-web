@@ -1,10 +1,10 @@
 import { Globe, MessageCircle } from "lucide-react"
 
 export const SOCIAL_CLASS_OPTIONS = [
-  { value: "class_a", label: "Classe A", detail: "R$\u00A020.000+" },
-  { value: "class_b", label: "Classe B", detail: "R$\u00A08.000 – R$\u00A020.000" },
-  { value: "class_c", label: "Classe C", detail: "R$\u00A03.000 – R$\u00A08.000" },
-  { value: "class_d", label: "Classe D", detail: "Até R$\u00A03.000" },
+  { value: "class_a", label: "Classe A", detail: "R$ 20.000+" },
+  { value: "class_b", label: "Classe B", detail: "R$ 8.000 – R$ 20.000" },
+  { value: "class_c", label: "Classe C", detail: "R$ 3.000 – R$ 8.000" },
+  { value: "class_d", label: "Classe D", detail: "Até R$ 3.000" },
 ] as const
 
 export const GENDER_OPTIONS = [

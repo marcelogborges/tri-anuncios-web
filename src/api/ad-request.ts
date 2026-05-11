@@ -14,7 +14,15 @@ export type AdRequestBaseAdCreative = {
   id: number
   name: string
   product_service: string | null
-  image_url: string | null
+  feed_image_url: string | null
+  story_image_url: string | null
+  message: string | null
+  link: string | null
+  target_gender: string
+  target_age_min: number | null
+  target_age_max: number | null
+  target_social_classes: string[]
+  geo_locations: Record<string, unknown>
 }
 
 export type AdRequestAdPackage = {
@@ -29,6 +37,7 @@ export type AdRequestPlatformPublication = {
   id: number
   provider: string
   status: string
+  created_at: string
 }
 
 export type AdRequest = {
