@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { fetchPages, connectPage, MetaPage } from "@/api/meta-oauth"
 
-export default function ConnectMetaPage() {
+function ConnectMetaContent() {
   const searchParams = useSearchParams()
   const connectionToken = searchParams.get("connection_token")
 
@@ -107,5 +107,13 @@ export default function ConnectMetaPage() {
         </div>
       ))}
     </div>
+  )
+}
+
+export default function ConnectMetaPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, fontFamily: "sans-serif" }}>Carregando...</div>}>
+      <ConnectMetaContent />
+    </Suspense>
   )
 }
