@@ -55,11 +55,11 @@ const getLinkInfo = (link?: string | null): { domain: string; cta: string } => {
 
 const StoryFrame = ({
   imageUrl,
-  headline,
+  caption,
   businessName,
 }: {
   imageUrl?: string
-  headline?: string
+  caption?: string
   businessName: string
 }) => (
   <div
@@ -80,7 +80,6 @@ const StoryFrame = ({
       )}
     </div>
     <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
-    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
     <div className="absolute top-3 inset-x-3 flex gap-1">
       {[1, 2, 3].map((i) => (
         <div
@@ -90,33 +89,56 @@ const StoryFrame = ({
         />
       ))}
     </div>
-    <div className="absolute top-6 left-3 right-3 flex items-center gap-2">
-      <div style={{ width: 30, height: 30, borderRadius: 9999, flexShrink: 0, background: IG_GRADIENT, padding: 2 }}>
-        <div style={{ width: "100%", height: "100%", borderRadius: 9999, background: "var(--primary)", color: "#fff", display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700, border: "1.5px solid #fff" }}>
-          {AVATAR_INITIALS(businessName)}
-        </div>
+    <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+    <div className="absolute right-3 flex flex-col items-center gap-5" style={{ bottom: 110 }}>
+      <div className="flex flex-col items-center gap-0.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-white font-bold truncate" style={{ fontSize: 11, lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
-          {businessName}
-        </p>
-        <p className="mt-0.5" style={{ fontSize: 9, color: "rgba(255,255,255,0.75)", fontWeight: 500 }}>
-          Patrocinado
-        </p>
+      <div className="flex flex-col items-center gap-0.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <span style={{ fontSize: 10, color: "white", fontWeight: 600 }}>4</span>
+      </div>
+      <div className="flex flex-col items-center gap-0.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13" />
+          <polygon points="22 2 15 22 11 13 2 9 22 2" />
+        </svg>
       </div>
     </div>
-    {headline && (
-      <p
-        className="absolute left-3.5 right-3.5 font-quicksand font-extrabold text-white leading-tight"
-        style={{ bottom: 72, fontSize: 22, textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}
-      >
-        {headline}
-      </p>
-    )}
-    <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-0.5">
-      <p className="text-white font-bold" style={{ fontSize: 11, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
-        Ver mais ↑
-      </p>
+    <div className="absolute inset-x-0 bottom-4 pl-3 pr-12 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <div style={{ width: 30, height: 30, borderRadius: 9999, flexShrink: 0, background: "#dbdbdb", padding: 2 }}>
+          <div style={{ width: "100%", height: "100%", borderRadius: 9999, background: "var(--primary)", color: "#fff", display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700, border: "1.5px solid #fff" }}>
+            {AVATAR_INITIALS(businessName)}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <span className="text-white font-bold truncate" style={{ fontSize: 11, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
+            {businessName}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#3897f0" style={{ flexShrink: 0 }}>
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#3897f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+        </div>
+        <button type="button" style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.8)", color: "#fff", padding: "3px 10px", borderRadius: 6, fontWeight: 700, fontSize: 10, whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer" }}>
+          Seguir
+        </button>
+      </div>
+      <button type="button" style={{ width: "100%", background: "rgba(255,255,255,0.92)", border: "none", borderRadius: 8, padding: "7px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: IG_COLORS.text }}>Saiba mais</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={IG_COLORS.text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+      {caption && (
+        <p className="line-clamp-2" style={{ fontSize: 11, color: "rgba(255,255,255,0.9)", lineHeight: 1.4, textShadow: "0 1px 3px rgba(0,0,0,0.6)", margin: 0 }}>
+          {caption}
+        </p>
+      )}
     </div>
   </div>
 )
@@ -140,7 +162,7 @@ const FeedFrame = ({
     <div
       className="mx-auto overflow-hidden"
       style={{
-        width: 340,
+        width: 300,
         borderRadius: 28,
         background: "#fff",
         boxShadow: "0 10px 20px rgba(6, 78, 59, 0.04), 0 0 0 1px rgba(0,0,0,0.06)",
@@ -223,9 +245,11 @@ const FeedFrame = ({
         </button>
       </div>
       {caption && (
-        <div style={{ padding: "8px 14px 12px", fontSize: "0.8125rem", lineHeight: 1.4, color: IG_COLORS.text }}>
-          <strong style={{ fontWeight: 700 }}>{businessName} </strong>
-          {caption}
+        <div style={{ padding: "8px 14px 12px" }}>
+          <p className="line-clamp-2" style={{ fontSize: "0.8125rem", lineHeight: 1.4, color: IG_COLORS.text, margin: 0 }}>
+            <strong style={{ fontWeight: 700 }}>{businessName} </strong>
+            {caption}
+          </p>
         </div>
       )}
     </div>
@@ -257,7 +281,7 @@ export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, organiza
       {tab === "story" ? (
         <StoryFrame
           imageUrl={storyImageUrl}
-          headline={name ?? undefined}
+          caption={message}
           businessName={organizationName}
         />
       ) : (

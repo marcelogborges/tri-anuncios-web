@@ -58,10 +58,19 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
 
   useEffect(() => {
     if (!statusInfo.isLive || !metaPublication) return
-    getPlatformPublicationInsights(metaPublication.id).then(res => {
-      const data = res.data
-      if (data && Object.keys(data).length > 0) setInsights(data as InsightsData)
-    }).catch(() => {})
+
+    const loadInsights = async () => {
+      try {
+        const res = await getPlatformPublicationInsights(metaPublication.id)
+        const data = res.data
+
+        if (data && Object.keys(data).length > 0) {
+          setInsights(data as InsightsData)
+        }
+      } catch {}
+    }
+
+    loadInsights()
   }, [metaPublication?.id, statusInfo.isLive])
 
   const metaText = isDraft
@@ -105,16 +114,16 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
           </div>
           <p className="text-sm text-muted-foreground">{metaText}</p>
           {!isDraft && (
-            <div className="grid grid-cols-2 rounded-md overflow-hidden">
-              <div className="p-3 bg-primary-soft border-r border-primary/10">
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Impressões</p>
-                <p className="font-bold text-2xl text-primary">
+            <div className="grid grid-cols-2 overflow-hidden rounded-md border border-border bg-card">
+              <div className="border-r border-border bg-card p-3">
+                <p className="text-label-caps uppercase text-muted-foreground">Impressões</p>
+                <p className="text-lg font-bold text-foreground">
                   {insights ? new Intl.NumberFormat("pt-BR").format(insights.impressions) : "—"}
                 </p>
               </div>
-              <div className="p-3 bg-primary-soft">
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Cliques</p>
-                <p className="font-bold text-2xl text-primary">
+              <div className="bg-card p-3">
+                <p className="text-label-caps uppercase text-muted-foreground">Cliques</p>
+                <p className="text-lg font-bold text-foreground">
                   {insights ? new Intl.NumberFormat("pt-BR").format(insights.clicks) : "—"}
                 </p>
               </div>

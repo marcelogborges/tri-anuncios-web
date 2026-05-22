@@ -167,7 +167,7 @@ export const AdMessageStep = ({
         <form onSubmit={handleSubmit} className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between">
-              <label htmlFor="adMessage" className="text-base font-semibold text-primary">
+              <label htmlFor="adMessage" className="text-base font-semibold text-foreground">
                 Mensagem principal
               </label>
               <span className="text-xs tabular-nums text-muted-foreground">

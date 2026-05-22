@@ -49,7 +49,7 @@ export const AdBasicInfoStep = ({ initialValues, onComplete, onLiveChange }: Pro
       <form onSubmit={handleSubmit} className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between">
-            <label htmlFor="adName" className="text-base font-semibold text-primary">
+            <label htmlFor="adName" className="text-base font-semibold text-foreground">
               Título do anúncio
             </label>
             <span className="text-xs tabular-nums text-muted-foreground">
@@ -81,7 +81,7 @@ export const AdBasicInfoStep = ({ initialValues, onComplete, onLiveChange }: Pro
 
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between">
-            <label htmlFor="productService" className="text-base font-semibold text-primary">
+            <label htmlFor="productService" className="text-base font-semibold text-foreground">
               Produto ou serviço anunciado
             </label>
             <span className="text-xs tabular-nums text-muted-foreground">
