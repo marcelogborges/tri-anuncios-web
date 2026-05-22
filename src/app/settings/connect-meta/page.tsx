@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { fetchPages, connectPage } from "@/api/meta-oauth"
 import type { MetaPage } from "@/api/meta-oauth"
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 type PageStatus = "loading" | "selecting" | "connecting" | "error"
 
-export default function ConnectMetaPage() {
+function ConnectMetaContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const connectionToken = searchParams.get("connection_token")
@@ -164,5 +164,13 @@ export default function ConnectMetaPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ConnectMetaPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, fontFamily: "sans-serif" }}>Carregando...</div>}>
+      <ConnectMetaContent />
+    </Suspense>
   )
 }
