@@ -25,6 +25,8 @@ import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-ste
 import { ReviewStep } from "@/features/adCreationFlow/review-step"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
+import { getPlatformAccounts } from "@/api/platform-accounts"
+import { MetaConnectModal } from "@/features/myAds/meta-connect-modal"
 
 const TOTAL_STEPS = 6
 
@@ -35,6 +37,7 @@ const CriarAnuncioPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [publishModalOpen, setPublishModalOpen] = useState(false)
+  const [metaModalOpen, setMetaModalOpen] = useState(false)
   const [createdAdRequestId, setCreatedAdRequestId] = useState<number | null>(null)
   const [adFeedImageFile, setAdFeedImageFile] = useState<File | null>(null)
   const [adStoryImageFile, setAdStoryImageFile] = useState<File | null>(null)
@@ -132,6 +135,20 @@ const CriarAnuncioPage = () => {
     return adRequest
   }
 
+  const proceedWithPublish = async () => {
+    try {
+      const adRequest = await createDraftAdRequest()
+      if (adRequest) {
+        setCreatedAdRequestId(adRequest.id)
+        setPublishModalOpen(true)
+      }
+    } catch (err) {
+      console.error("Failed to create ad request", err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleSaveDraft = async () => {
     if (!user || submitting) return
     setSubmitting(true)
@@ -150,14 +167,18 @@ const CriarAnuncioPage = () => {
     if (!user || submitting) return
     setSubmitting(true)
     try {
-      const adRequest = await createDraftAdRequest()
-      if (adRequest) {
-        setCreatedAdRequestId(adRequest.id)
-        setPublishModalOpen(true)
+      const accounts = await getPlatformAccounts()
+      const hasMeta = accounts.some(
+        (a) => a.provider === "meta" && a.status === "active"
+      )
+      if (!hasMeta) {
+        setMetaModalOpen(true)
+        setSubmitting(false)
+        return
       }
+      await proceedWithPublish()
     } catch (err) {
-      console.error("Failed to create ad request", err)
-    } finally {
+      console.error("Failed to check platform accounts", err)
       setSubmitting(false)
     }
   }
@@ -166,6 +187,11 @@ const CriarAnuncioPage = () => {
     setPublishModalOpen(false)
     flow.clear()
     router.push("/anuncios")
+  }
+
+  const onMetaConnected = async () => {
+    setMetaModalOpen(false)
+    await proceedWithPublish()
   }
 
   const STEP_NAMES = ["", "Básico", "Mensagem", "Criativo", "Localização", "Objetivo", "Revisão"]
@@ -306,6 +332,11 @@ const CriarAnuncioPage = () => {
           open={publishModalOpen}
           onOpenChange={setPublishModalOpen}
           onPublished={handlePublished}
+        />
+        <MetaConnectModal
+          open={metaModalOpen}
+          onOpenChange={setMetaModalOpen}
+          onConnected={onMetaConnected}
         />
       </Layout>
     </AuthGuard>

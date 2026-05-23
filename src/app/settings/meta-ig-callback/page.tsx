@@ -6,8 +6,23 @@ import { tokenCallback } from "@/api/meta-oauth"
 
 export default function MetaIgCallbackPage() {
   const router = useRouter()
-  const [status, setStatus] = useState<"loading" | "error">("loading")
-  const [error, setError] = useState<string>("")
+  const [error, setError] = useState("")
+
+  const notifyAndClose = (type: "meta-oauth-success" | "meta-oauth-error", message?: string) => {
+    if (window.opener) {
+      window.opener.postMessage(
+        { type, ...(message ? { message } : {}) },
+        window.location.origin
+      )
+      window.close()
+    } else {
+      if (type === "meta-oauth-success") {
+        router.replace("/anuncios")
+      } else {
+        setError(message ?? "Erro desconhecido.")
+      }
+    }
+  }
 
   useEffect(() => {
     const fragment = window.location.hash.replace("#", "")
@@ -18,14 +33,12 @@ export default function MetaIgCallbackPage() {
     const errorParam = params.get("error")
 
     if (errorParam) {
-      setError(`Facebook retornou erro: ${errorParam}`)
-      setStatus("error")
+      notifyAndClose("meta-oauth-error", `Facebook retornou erro: ${errorParam}`)
       return
     }
 
     if (!longLivedToken) {
-      setError("Token não encontrado na URL. Tente novamente.")
-      setStatus("error")
+      notifyAndClose("meta-oauth-error", "Token não encontrado. Tente novamente.")
       return
     }
 
@@ -37,24 +50,29 @@ export default function MetaIgCallbackPage() {
         router.replace(`/settings/connect-meta?connection_token=${connection_token}`)
       })
       .catch((err) => {
-        setError(err?.message ?? "Erro ao processar token.")
-        setStatus("error")
+        const msg = err?.message ?? "Erro ao processar token."
+        notifyAndClose("meta-oauth-error", msg)
       })
-  }, [router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  if (status === "error") {
+  if (error) {
     return (
-      <div style={{ padding: 40, fontFamily: "sans-serif" }}>
-        <h2>Erro ao conectar Meta</h2>
-        <p style={{ color: "red" }}>{error}</p>
-        <a href="/settings/connect-meta">Voltar</a>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4">
+        <p className="text-sm text-destructive">{error}</p>
+        <a
+          href="/settings/connect-meta"
+          className="text-sm text-primary underline underline-offset-4"
+        >
+          Voltar
+        </a>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: 40, fontFamily: "sans-serif" }}>
-      <p>Processando autenticação Meta...</p>
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <p className="text-sm text-muted-foreground">Processando autenticação Meta...</p>
     </div>
   )
 }

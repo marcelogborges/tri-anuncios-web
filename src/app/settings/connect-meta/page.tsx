@@ -1,111 +1,168 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { fetchPages, connectPage, MetaPage } from "@/api/meta-oauth"
+import { useRouter, useSearchParams } from "next/navigation"
+import { fetchPages, connectPage } from "@/api/meta-oauth"
+import type { MetaPage } from "@/api/meta-oauth"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+type PageStatus = "loading" | "selecting" | "connecting" | "error"
 
 export default function ConnectMetaPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const connectionToken = searchParams.get("connection_token")
+  const errorParam = searchParams.get("error")
 
+  const [pageStatus, setPageStatus] = useState<PageStatus>(
+    errorParam ? "error" : "loading"
+  )
   const [pages, setPages] = useState<MetaPage[]>([])
-  const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState(false)
-  const [connected, setConnected] = useState<{ page_id: string; instagram_id: string | null } | null>(null)
-  const [error, setError] = useState("")
+  const [errorMsg, setErrorMsg] = useState(
+    errorParam ? "Falha no login com Facebook." : ""
+  )
+
+  const notifyAndClose = (type: "meta-oauth-success" | "meta-oauth-error", message?: string) => {
+    if (window.opener) {
+      window.opener.postMessage(
+        { type, ...(message ? { message } : {}) },
+        window.location.origin
+      )
+      window.close()
+    } else {
+      if (type === "meta-oauth-success") {
+        router.push("/anuncios")
+      } else {
+        setErrorMsg(message ?? "Erro desconhecido.")
+        setPageStatus("error")
+      }
+    }
+  }
 
   useEffect(() => {
-    if (!connectionToken) {
-      setError("connection_token ausente na URL.")
-      setLoading(false)
+    if (errorParam) {
+      notifyAndClose("meta-oauth-error", "Falha no login com Facebook.")
       return
     }
-
+    if (!connectionToken) {
+      setErrorMsg("connection_token ausente na URL.")
+      setPageStatus("error")
+      return
+    }
     fetchPages(connectionToken)
-      .then(({ pages }) => setPages(pages))
-      .catch((err) => setError(err?.message ?? "Erro ao buscar páginas."))
-      .finally(() => setLoading(false))
-  }, [connectionToken])
+      .then(({ pages }) => {
+        setPages(pages)
+        setPageStatus("selecting")
+      })
+      .catch((err) => {
+        const msg = err?.message ?? "Erro ao buscar páginas."
+        notifyAndClose("meta-oauth-error", msg)
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleConnect(pageId: string) {
     if (!connectionToken) return
-    setConnecting(true)
-    setError("")
+    setPageStatus("connecting")
+    setErrorMsg("")
     try {
-      const { platform_account } = await connectPage({
-        connection_token: connectionToken,
-        page_id: pageId,
-      })
-      setConnected({
-        page_id: platform_account.facebook_page_id,
-        instagram_id: platform_account.instagram_account_id,
-      })
+      await connectPage({ connection_token: connectionToken, page_id: pageId })
+      notifyAndClose("meta-oauth-success")
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao conectar página.")
-    } finally {
-      setConnecting(false)
+      const msg = err instanceof Error ? err.message : "Erro ao conectar página."
+      setErrorMsg(msg)
+      setPageStatus("error")
     }
   }
 
-  if (loading) {
-    return <div style={{ padding: 40, fontFamily: "sans-serif" }}>Carregando páginas...</div>
+  async function handleRetry() {
+    if (!connectionToken) return
+    setPageStatus("loading")
+    setErrorMsg("")
+    try {
+      const { pages } = await fetchPages(connectionToken)
+      setPages(pages)
+      setPageStatus("selecting")
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao buscar páginas."
+      setErrorMsg(msg)
+      setPageStatus("error")
+    }
   }
 
-  if (connected) {
+  if (pageStatus === "loading") {
     return (
-      <div style={{ padding: 40, fontFamily: "sans-serif" }}>
-        <h2 style={{ color: "green" }}>✓ Meta conectado com sucesso!</h2>
-        <p><strong>Facebook Page ID:</strong> {connected.page_id}</p>
-        <p><strong>Instagram Account ID:</strong> {connected.instagram_id ?? "não encontrado"}</p>
-        <a href="/anuncios">Ir para anúncios</a>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Carregando páginas...</p>
+      </div>
+    )
+  }
+
+  if (pageStatus === "error") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4">
+        <p className="text-sm text-destructive">{errorMsg}</p>
+        {window?.opener ? (
+          <Button
+            variant="outline"
+            onClick={() =>
+              notifyAndClose("meta-oauth-error", errorMsg)
+            }
+          >
+            Fechar e tentar novamente
+          </Button>
+        ) : (
+          <Button onClick={handleRetry}>Tentar novamente</Button>
+        )}
       </div>
     )
   }
 
   return (
-    <div style={{ padding: 40, fontFamily: "sans-serif", maxWidth: 600 }}>
-      <h2>Conectar conta Meta</h2>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {pages.length === 0 && !error && (
-        <p>Nenhuma página encontrada. Verifique se você autorizou o acesso.</p>
-      )}
-
-      {pages.map((page) => (
-        <div
-          key={page.id}
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            padding: 16,
-            marginBottom: 12,
-          }}
-        >
-          <strong>{page.name}</strong>
-          <p style={{ fontSize: 12, color: "#666", margin: "4px 0" }}>
-            Page ID: {page.id}
+    <div className="flex min-h-screen flex-col items-center justify-start bg-background px-4 pt-12">
+      <div className="w-full max-w-md space-y-6">
+        <div>
+          <h1 className="text-xl font-semibold">Selecione uma página</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Escolha a página do Facebook para vincular à sua conta.
           </p>
-          <p style={{ fontSize: 12, color: "#666", margin: "4px 0" }}>
-            Instagram: {page.instagram_account_id ?? "não conectado"}
-          </p>
-          <button
-            onClick={() => handleConnect(page.id)}
-            disabled={connecting}
-            style={{
-              marginTop: 8,
-              padding: "8px 16px",
-              background: "#1877f2",
-              color: "white",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            {connecting ? "Conectando..." : "Usar esta página"}
-          </button>
         </div>
-      ))}
+
+        {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
+
+        {pages.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma página encontrada. Verifique se autorizou o acesso.
+          </p>
+        )}
+
+        <div className="space-y-3">
+          {pages.map((page) => (
+            <button
+              key={page.id}
+              type="button"
+              disabled={pageStatus === "connecting"}
+              onClick={() => handleConnect(page.id)}
+              className={cn(
+                "w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-muted-foreground/40",
+                pageStatus === "connecting" && "opacity-60 cursor-not-allowed"
+              )}
+            >
+              <p className="font-medium">{page.name}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {page.instagram_account_id
+                  ? `Instagram conectado`
+                  : "Sem conta Instagram"}
+              </p>
+            </button>
+          ))}
+        </div>
+
+        {pageStatus === "connecting" && (
+          <p className="text-center text-sm text-muted-foreground">Conectando...</p>
+        )}
+      </div>
     </div>
   )
 }

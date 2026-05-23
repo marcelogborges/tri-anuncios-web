@@ -32,3 +32,7 @@ export async function connectPage(params: {
     body: params,
   })
 }
+
+export async function getAuthorizeUrl(): Promise<{ url: string }> {
+  return api("/api/v1/meta/oauth/authorize_url")
+}
