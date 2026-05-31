@@ -1,60 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { tokenCallback } from "@/api/meta-oauth"
+import { useMetaOAuthCallback } from "@/features/meta-oauth/use-meta-oauth-callback"
 
-export default function MetaIgCallbackPage() {
-  const router = useRouter()
-  const [error, setError] = useState("")
-
-  const notifyAndClose = (type: "meta-oauth-success" | "meta-oauth-error", message?: string) => {
-    if (window.opener) {
-      window.opener.postMessage(
-        { type, ...(message ? { message } : {}) },
-        window.location.origin
-      )
-      window.close()
-    } else {
-      if (type === "meta-oauth-success") {
-        router.replace("/anuncios")
-      } else {
-        setError(message ?? "Erro desconhecido.")
-      }
-    }
-  }
-
-  useEffect(() => {
-    const fragment = window.location.hash.replace("#", "")
-    const params = new URLSearchParams(fragment)
-
-    const longLivedToken = params.get("long_lived_token")
-    const expiresIn = params.get("expires_in")
-    const errorParam = params.get("error")
-
-    if (errorParam) {
-      notifyAndClose("meta-oauth-error", `Facebook retornou erro: ${errorParam}`)
-      return
-    }
-
-    if (!longLivedToken) {
-      notifyAndClose("meta-oauth-error", "Token não encontrado. Tente novamente.")
-      return
-    }
-
-    tokenCallback({
-      long_lived_token: longLivedToken,
-      ...(expiresIn ? { expires_in: Number(expiresIn) } : {}),
-    })
-      .then(({ connection_token }) => {
-        router.replace(`/settings/connect-meta?connection_token=${connection_token}`)
-      })
-      .catch((err) => {
-        const msg = err?.message ?? "Erro ao processar token."
-        notifyAndClose("meta-oauth-error", msg)
-      })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+const MetaIgCallbackPage = () => {
+  const { error } = useMetaOAuthCallback()
 
   if (error) {
     return (
@@ -76,3 +25,5 @@ export default function MetaIgCallbackPage() {
     </div>
   )
 }
+
+export default MetaIgCallbackPage

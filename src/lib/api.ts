@@ -60,6 +60,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     credentials,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      "ngrok-skip-browser-warning": "true",
       ...authHeaders,
       ...headers,
     },
