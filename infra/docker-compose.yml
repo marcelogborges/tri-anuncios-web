@@ -1,0 +1,7 @@
+services:
+  web:
+    image: 271376211201.dkr.ecr.us-east-2.amazonaws.com/tri-anuncios-web:latest
+    container_name: tri-anuncios-web
+    restart: always
+    ports:
+      - "3000:3000"

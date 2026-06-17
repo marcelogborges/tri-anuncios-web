@@ -25,7 +25,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push Docker image
@@ -39,26 +38,33 @@ jobs:
           docker push $IMAGE:latest
           docker push $IMAGE:${{ github.sha }}
 
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_WEB_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            aws ecr get-login-password --region us-east-2 | \
-              docker login --username AWS --password-stdin 271376211201.dkr.ecr.us-east-2.amazonaws.com
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_WEB_HOST }} >> ~/.ssh/known_hosts
 
-            docker pull 271376211201.dkr.ecr.us-east-2.amazonaws.com/tri-anuncios-web:latest
+      - name: Copy config to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_WEB_HOST }} "mkdir -p ~/app"
+          scp -i ~/.ssh/deploy_key infra/docker-compose.yml ubuntu@${{ secrets.EC2_WEB_HOST }}:~/app/docker-compose.yml
 
-            docker stop tri-anuncios-web 2>/dev/null || true
-            docker rm tri-anuncios-web 2>/dev/null || true
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_WEB_HOST }} bash << 'ENDSSH'
+          set -e
 
-            docker run -d \
-              --name tri-anuncios-web \
-              --restart always \
-              -p 3000:3000 \
-              271376211201.dkr.ecr.us-east-2.amazonaws.com/tri-anuncios-web:latest
+          aws ecr get-login-password --region us-east-2 | \
+            docker login --username AWS --password-stdin 271376211201.dkr.ecr.us-east-2.amazonaws.com
 
+          cd ~/app
+          docker compose pull
+          docker compose up -d
+
+          for i in $(seq 1 12); do
+            curl -sf http://localhost:3000 && exit 0
             sleep 5
-            curl -sf http://localhost:3000 || (echo "Health check failed" && exit 1)
+          done
+          echo "Health check failed after 60s" && exit 1
+          ENDSSH
