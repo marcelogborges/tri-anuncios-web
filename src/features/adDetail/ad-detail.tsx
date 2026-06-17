@@ -44,7 +44,7 @@ export function AdDetail({ adRequest, onRefresh }: AdDetailProps) {
 
   useEffect(() => {
     if (!activePub) return
-    getPlatformPublicationInsights(activePub.id)
+    getPlatformPublicationInsights(adRequest.id, activePub.id)
       .then((res) => {
         const data = res.data
         if (data && "impressions" in data) {

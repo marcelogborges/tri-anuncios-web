@@ -49,32 +49,34 @@ type PlatformPublicationResponse = {
   platform_publication: PlatformPublication
 }
 
-export const getPlatformPublications = async () => {
+export const getPlatformPublications = async (adRequestId: number | string) => {
   const res = await api<PlatformPublicationsResponse>(
-    "/api/v1/platform_publications"
+    `/api/v1/ad_requests/${adRequestId}/platform_publications`
   )
   return res.platform_publications
 }
 
-export const getPlatformPublication = async (id: number | string) => {
+export const getPlatformPublication = async (adRequestId: number | string, id: number | string) => {
   const res = await api<PlatformPublicationResponse>(
-    `/api/v1/platform_publications/${id}`
+    `/api/v1/ad_requests/${adRequestId}/platform_publications/${id}`
   )
   return res.platform_publication
 }
 
 export const getPlatformPublicationInsights = async (
+  adRequestId: number | string,
   id: number | string,
   datePreset?: string
 ) => {
   const params = datePreset ? `?date_preset=${datePreset}` : ""
   const res = await api<PlatformPublicationInsights>(
-    `/api/v1/platform_publications/${id}/insights${params}`
+    `/api/v1/ad_requests/${adRequestId}/platform_publications/${id}/insights${params}`
   )
   return res
 }
 
 export const getPlatformPublicationDailyInsights = async (
+  adRequestId: number | string,
   id: number | string,
   period?: string,
   startDate?: string
@@ -84,7 +86,7 @@ export const getPlatformPublicationDailyInsights = async (
   if (startDate) searchParams.set("start_date", startDate)
   const query = searchParams.toString()
   const res = await api<PlatformPublicationDailyInsights>(
-    `/api/v1/platform_publications/${id}/daily_insights${query ? `?${query}` : ""}`
+    `/api/v1/ad_requests/${adRequestId}/platform_publications/${id}/daily_insights${query ? `?${query}` : ""}`
   )
   return res.data
 }

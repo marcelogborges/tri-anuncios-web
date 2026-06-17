@@ -61,7 +61,7 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
 
     const loadInsights = async () => {
       try {
-        const res = await getPlatformPublicationInsights(metaPublication.id)
+        const res = await getPlatformPublicationInsights(adRequest.id, metaPublication.id)
         const data = res.data
 
         if (data && Object.keys(data).length > 0) {

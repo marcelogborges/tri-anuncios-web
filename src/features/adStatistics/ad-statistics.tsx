@@ -40,14 +40,14 @@ export function AdStatistics({ adRequest }: Props) {
     setError(null)
 
     try {
-      const aggResult = await getPlatformPublicationInsights(metaPublication.id, preset)
+      const aggResult = await getPlatformPublicationInsights(adRequest.id, metaPublication.id, preset)
       setInsights(aggResult)
     } catch {
       setError("Não foi possível carregar as estatísticas. Tente novamente.")
     }
 
     try {
-      const dailyResult = await getPlatformPublicationDailyInsights(metaPublication.id, preset, "2026-03-27")
+      const dailyResult = await getPlatformPublicationDailyInsights(adRequest.id, metaPublication.id, preset, "2026-03-27")
       setDailyInsights(dailyResult)
     } catch {
       setDailyInsights(null)
