@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import type { AdCreationFlowState } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { OBJECTIVE_LABELS } from "@/features/adCreationFlow/constants"
 import { StepHeader } from "@/features/adCreationFlow/step-header"
+import { AdPreview } from "@/features/adCreationFlow/ad-preview"
+import type { AdPreviewProps } from "@/features/adCreationFlow/ad-preview"
 
 const formatPhoneDisplay = (waLink: string) => {
   const match = waLink.match(/wa\.me\/55(\d{2})(\d{5})(\d{4})/)
@@ -14,6 +16,7 @@ const formatPhoneDisplay = (waLink: string) => {
 
 type Props = {
   flow: AdCreationFlowState
+  preview: AdPreviewProps
   submitting?: boolean
   onEdit: (step: number) => void
   onSaveDraft: () => void
@@ -64,7 +67,7 @@ const storyImageLabel = (image: AdCreationFlowState["adImage"]): string | null =
   return image.storyFileName ? `📎 ${image.storyFileName}` : null
 }
 
-export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }: Props) => {
+export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onPublish }: Props) => {
   const { adBasicInfo, adImage, adMessage, geoLocation, optimizationGoal } = flow
 
   const feedLabel = feedImageLabel(adImage)
@@ -77,6 +80,9 @@ export const ReviewStep = ({ flow, submitting, onEdit, onSaveDraft, onPublish }:
         title="Tudo certo?"
         subtitle="Confira os dados antes de publicar."
       />
+      <div className="mb-6 rounded-lg border border-border bg-muted/40 py-6 lg:hidden">
+        <AdPreview {...preview} />
+      </div>
       <div className="flex flex-col gap-4">
         <ReviewBlock title="Criativo">
           {adBasicInfo && (

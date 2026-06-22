@@ -7,6 +7,7 @@ import { AuthGuard } from "@/lib/auth-guard"
 import { useAuth } from "@/lib/auth-context"
 import { Layout } from "@/components/layout"
 import { AdPreview } from "@/features/adCreationFlow/ad-preview"
+import type { AdPreviewProps } from "@/features/adCreationFlow/ad-preview"
 import { getOrganization } from "@/api/organization"
 import type { Organization } from "@/api/organization"
 import { createBaseAdCreative } from "@/api/base-ad-creative"
@@ -24,6 +25,7 @@ import { AdObjectiveStep } from "@/features/adCreationFlow/ad-objective-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
 import { ReviewStep } from "@/features/adCreationFlow/review-step"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
+import { saveAdImageFile, loadAdImageFiles } from "@/features/adCreationFlow/ad-image-store"
 import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
 import { getPlatformAccounts } from "@/api/platform-accounts"
 import { MetaConnectModal } from "@/features/myAds/meta-connect-modal"
@@ -65,6 +67,52 @@ const CriarAnuncioPage = () => {
     if (flow.hydrated) fetchOrganization()
   }, [flow.hydrated, fetchOrganization])
 
+  useEffect(() => {
+    if (!flow.hydrated) return
+
+    const revoke: string[] = []
+
+    const hydrateImages = async () => {
+      try {
+        const { feed, story } = await loadAdImageFiles()
+
+        setAdFeedImageFile(feed)
+        setAdStoryImageFile(story)
+
+        const adImage = flow.adImage
+
+        if (adImage?.type === "file" && !feed) {
+          flow.update({ adImage: null, step: Math.min(flow.step, 3) })
+        } else if (adImage?.type === "file") {
+          const feedUrl = URL.createObjectURL(feed!)
+          const storyUrl = story ? URL.createObjectURL(story) : undefined
+
+          revoke.push(feedUrl)
+
+          if (storyUrl) revoke.push(storyUrl)
+
+          setLivePreview((p) => ({ ...p, feedImageUrl: feedUrl, storyImageUrl: storyUrl }))
+          flow.update({
+            adImage: {
+              ...adImage,
+              feedPreviewUrl: feedUrl,
+              storyPreviewUrl: storyUrl,
+            },
+          })
+        } else if (adImage?.type === "generated") {
+          setLivePreview((p) => ({ ...p, feedImageUrl: adImage.dataUrl }))
+        }
+      } catch (err) {
+        console.error("Failed to restore ad images", err)
+      }
+    }
+
+    hydrateImages()
+
+    return () => revoke.forEach((url) => URL.revokeObjectURL(url))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flow.hydrated])
+
   const handleOrgComplete = (updated: Organization) => {
     setOrganization(updated)
     flow.update({ step: 1 })
@@ -77,6 +125,8 @@ const CriarAnuncioPage = () => {
   const handleImageComplete = (image: AdImageData, feedFile: File | null, storyFile: File | null) => {
     setAdFeedImageFile(feedFile)
     setAdStoryImageFile(storyFile)
+    saveAdImageFile("feed", feedFile)
+    saveAdImageFile("story", storyFile)
     flow.update({ adImage: image, step: 4 })
   }
 
@@ -194,8 +244,6 @@ const CriarAnuncioPage = () => {
     await proceedWithPublish()
   }
 
-  const STEP_NAMES = ["", "Básico", "Mensagem", "Criativo", "Localização", "Objetivo", "Revisão"]
-
   const renderStep = () => {
     if (loading || !flow.hydrated) {
       return (
@@ -261,6 +309,7 @@ const CriarAnuncioPage = () => {
         return (
           <ReviewStep
             flow={flow}
+            preview={previewProps}
             submitting={submitting}
             onEdit={handleEditStep}
             onSaveDraft={handleSaveDraft}
@@ -271,6 +320,15 @@ const CriarAnuncioPage = () => {
   }
 
   const currentStep = Math.min(Math.max(flow.step, 1), TOTAL_STEPS)
+
+  const previewProps: AdPreviewProps = {
+    name: livePreview.name ?? flow.adBasicInfo?.name,
+    message: livePreview.message ?? flow.adMessage ?? undefined,
+    feedImageUrl: livePreview.feedImageUrl,
+    storyImageUrl: livePreview.storyImageUrl,
+    organizationName: organization?.name,
+    link: livePreview.link ?? flow.optimizationGoal?.link,
+  }
 
   return (
     <AuthGuard>
@@ -292,39 +350,22 @@ const CriarAnuncioPage = () => {
                   {flow.step > 0 ? (
                     <button
                       onClick={handleBack}
-                      className="flex items-center gap-1 text-label-caps text-muted-foreground hover:text-foreground transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-label-caps font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     >
-                      <ArrowLeft className="h-3 w-3" />
+                      <ArrowLeft className="h-3.5 w-3.5" />
                       Voltar
                     </button>
                   ) : (
                     <span />
                   )}
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={flow.reset}
-                      className="text-label-caps text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      Recomeçar
-                    </button>
-                    <span className="text-label-caps text-muted-foreground">
-                      {STEP_NAMES[currentStep]}
-                    </span>
-                  </div>
+                  <span />
                 </div>
               </div>
             )}
             {renderStep()}
           </div>
           <div className="ad-creation-preview hidden border-l border-border lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)] lg:items-start lg:justify-center">
-            <AdPreview
-              name={livePreview.name ?? flow.adBasicInfo?.name}
-              message={livePreview.message ?? flow.adMessage ?? undefined}
-              feedImageUrl={livePreview.feedImageUrl}
-              storyImageUrl={livePreview.storyImageUrl}
-              organizationName={organization?.name}
-              link={livePreview.link ?? flow.optimizationGoal?.link}
-            />
+            <AdPreview {...previewProps} className="h-full justify-start px-8 pt-28 pb-8" />
           </div>
         </div>
         <PublishAdModal

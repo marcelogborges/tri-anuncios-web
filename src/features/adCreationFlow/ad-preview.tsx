@@ -3,13 +3,14 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 
-type Props = {
+export type AdPreviewProps = {
   name?: string | null
   message?: string
   feedImageUrl?: string
   storyImageUrl?: string
   organizationName?: string
   link?: string | null
+  className?: string
 }
 
 type Tab = "story" | "feed"
@@ -64,7 +65,7 @@ const StoryFrame = ({
 }) => (
   <div
     className="relative mx-auto overflow-hidden rounded-[20px] bg-black"
-    style={{ width: 300, aspectRatio: "9/16" }}
+    style={{ width: "100%", maxWidth: 300, aspectRatio: "9/16" }}
   >
     <div className="absolute inset-0">
       {imageUrl ? (
@@ -162,7 +163,8 @@ const FeedFrame = ({
     <div
       className="mx-auto overflow-hidden"
       style={{
-        width: 300,
+        width: "100%",
+        maxWidth: 300,
         borderRadius: 28,
         background: "#fff",
         boxShadow: "0 10px 20px rgba(6, 78, 59, 0.04), 0 0 0 1px rgba(0,0,0,0.06)",
@@ -256,11 +258,11 @@ const FeedFrame = ({
   )
 }
 
-export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, organizationName = "Meu negócio", link }: Props) => {
+export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, organizationName = "Meu negócio", link, className }: AdPreviewProps) => {
   const [tab, setTab] = useState<Tab>("feed")
 
   return (
-    <div className="flex h-full flex-col items-center justify-start gap-6 px-8 pt-28 pb-8">
+    <div className={cn("flex flex-col items-center gap-6", className)}>
       <div className="flex rounded-full bg-card p-1 shadow-ambient">
         {(["feed", "story"] as Tab[]).map((t) => (
           <button

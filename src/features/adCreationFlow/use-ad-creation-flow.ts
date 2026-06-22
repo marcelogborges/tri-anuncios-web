@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from "react"
 import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
 import type { GeoLocationData } from "@/features/adCreationFlow/geo-location-step"
+import { clearAdImageFiles } from "@/features/adCreationFlow/ad-image-store"
 
 const STORAGE_KEY = "tri-anuncios:ad-creation-flow"
+const TTL_MS = 30 * 60 * 1000
 
 export type AdImageData =
   | { type: "file"; feedFileName: string; feedPreviewUrl: string; storyFileName?: string; storyPreviewUrl?: string }
@@ -33,13 +35,21 @@ const load = (): AdCreationFlowState => {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_STATE
     const parsed = JSON.parse(raw)
+    if (typeof parsed.savedAt !== "number" || Date.now() - parsed.savedAt > TTL_MS) {
+      localStorage.removeItem(STORAGE_KEY)
+      clearAdImageFiles()
+      return DEFAULT_STATE
+    }
     if ("feedImage" in parsed || "storyImage" in parsed) {
       localStorage.removeItem(STORAGE_KEY)
+      clearAdImageFiles()
       return DEFAULT_STATE
     }
     if (parsed.adImage?.type === "file" && "fileName" in parsed.adImage) {
       parsed.adImage = null
+      clearAdImageFiles()
     }
+    delete parsed.savedAt
     return { ...DEFAULT_STATE, ...parsed }
   } catch {
     return DEFAULT_STATE
@@ -48,7 +58,7 @@ const load = (): AdCreationFlowState => {
 
 const save = (state: AdCreationFlowState) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, savedAt: Date.now() }))
   } catch {
     // storage full or unavailable — ignore
   }
@@ -56,6 +66,7 @@ const save = (state: AdCreationFlowState) => {
 
 export const clearAdCreationFlow = () => {
   localStorage.removeItem(STORAGE_KEY)
+  clearAdImageFiles()
 }
 
 export const useAdCreationFlow = () => {
