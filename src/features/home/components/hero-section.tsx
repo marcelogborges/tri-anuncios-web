@@ -23,13 +23,10 @@ export const HeroSection = () => {
 
             <div className="flex gap-3 flex-wrap max-[560px]:flex-col">
               <Button size="lg" className="rounded-full" asChild>
-                <a href="#planos">
+                <a href="/anuncios/criar">
                   Criar meu primeiro anúncio
                   <ArrowRight className="size-4" />
                 </a>
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full" asChild>
-                <a href="#como-funciona">Ver como funciona</a>
               </Button>
             </div>
 

@@ -16,7 +16,7 @@ export const FinalCtaSection = () => {
             Comece em 5 minutos. Sem cartão de crédito até a publicação.
           </p>
           <Button size="lg" className="rounded-full bg-white text-primary hover:bg-white/90" asChild>
-            <Link href="/register">
+            <Link href="/anuncios/criar">
               Criar meu primeiro anúncio
               <ArrowRight className="size-4" />
             </Link>
