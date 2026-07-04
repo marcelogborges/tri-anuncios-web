@@ -178,6 +178,17 @@ export const MetaConnectModal = ({
               Cancelar
             </Button>
           )}
+          <p className="text-xs text-muted-foreground text-center">
+            Problemas para conectar?{" "}
+            <a
+              href="/guia/conectar-meta"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-4 hover:opacity-80 transition-opacity"
+            >
+              Veja o guia de configuração
+            </a>
+          </p>
         </div>
       </DialogContent>
     </Dialog>
