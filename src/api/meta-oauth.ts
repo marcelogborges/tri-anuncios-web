@@ -3,18 +3,13 @@ import { api } from "@/lib/api"
 export type MetaPage = {
   id: string
   name: string
-  access_token: string
   instagram_account_id: string | null
 }
 
-export const tokenCallback = async (params: {
-  long_lived_token: string
-  expires_in?: number
-}): Promise<{ connection_token: string; pages: MetaPage[] }> =>
-  api("/api/v1/meta/oauth/token_callback", {
-    method: "POST",
-    body: params,
-  })
+export const getPages = async (
+  connectionToken: string
+): Promise<{ pages: MetaPage[] }> =>
+  api(`/api/v1/meta/oauth/pages?connection_token=${encodeURIComponent(connectionToken)}`)
 
 export const connectPage = async (params: {
   connection_token: string

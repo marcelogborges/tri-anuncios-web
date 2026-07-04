@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils"
 const ConnectMetaContent = () => {
   const searchParams = useSearchParams()
   const connectionToken = searchParams.get("connection_token")
-  const { pageStatus, pages, errorMsg, handleConnect, notifyAndClose } = useMetaPageConnect(connectionToken)
+  const oauthError = searchParams.get("error")
+  const { pageStatus, pages, errorMsg, handleConnect, notifyAndClose } = useMetaPageConnect(connectionToken, oauthError)
 
   if (pageStatus === "loading") {
     return (

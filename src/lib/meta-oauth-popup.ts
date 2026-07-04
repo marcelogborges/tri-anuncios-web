@@ -1,5 +1,3 @@
-export const META_OAUTH_PAGES_KEY = "meta_oauth_pages"
-
 export const notifyOAuthParent = (
   type: "meta-oauth-success" | "meta-oauth-error",
   message?: string

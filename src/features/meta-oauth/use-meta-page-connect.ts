@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { connectPage } from "@/api/meta-oauth"
+import { getPages, connectPage } from "@/api/meta-oauth"
 import type { MetaPage } from "@/api/meta-oauth"
-import { notifyOAuthParent, META_OAUTH_PAGES_KEY } from "@/lib/meta-oauth-popup"
+import { notifyOAuthParent } from "@/lib/meta-oauth-popup"
 
 export type PageStatus = "loading" | "selecting" | "connecting" | "error"
 
-export const useMetaPageConnect = (connectionToken: string | null) => {
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  access_denied: "Acesso negado no Facebook. Tente novamente.",
+  invalid_state: "Sessão inválida. Tente conectar novamente.",
+  oauth_failed: "Erro na autenticação com o Facebook. Tente novamente.",
+}
+
+export const useMetaPageConnect = (
+  connectionToken: string | null,
+  oauthError: string | null
+) => {
   const router = useRouter()
   const [pageStatus, setPageStatus] = useState<PageStatus>("loading")
   const [pages, setPages] = useState<MetaPage[]>([])
@@ -26,22 +35,41 @@ export const useMetaPageConnect = (connectionToken: string | null) => {
   }
 
   useEffect(() => {
+    if (oauthError) {
+      const msg = OAUTH_ERROR_MESSAGES[oauthError] ?? `Facebook retornou erro: ${oauthError}`
+      if (!notifyOAuthParent("meta-oauth-error", msg)) {
+        setErrorMsg(msg)
+        setPageStatus("error")
+      }
+      return
+    }
+
     if (!connectionToken) {
       setErrorMsg("connection_token ausente na URL.")
       setPageStatus("error")
       return
     }
 
-    const stored = sessionStorage.getItem(META_OAUTH_PAGES_KEY)
-    if (!stored) {
-      setErrorMsg("Sessão expirada. Tente conectar novamente.")
-      setPageStatus("error")
-      return
+    const load = async () => {
+      try {
+        const { pages: fetchedPages } = await getPages(connectionToken)
+
+        if (fetchedPages.length === 1) {
+          await connectPage({ connection_token: connectionToken, page_id: fetchedPages[0].id })
+          notifyAndClose("meta-oauth-success")
+          return
+        }
+
+        setPages(fetchedPages)
+        setPageStatus("selecting")
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Erro ao carregar páginas."
+        setErrorMsg(msg)
+        setPageStatus("error")
+      }
     }
 
-    sessionStorage.removeItem(META_OAUTH_PAGES_KEY)
-    setPages(JSON.parse(stored))
-    setPageStatus("selecting")
+    load()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
