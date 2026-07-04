@@ -104,6 +104,8 @@ export const MetaConnectModal = ({
       }
     }
 
+    authorizeUrlRef.current = null
+
     const popup = window.open(url, "meta-oauth", "width=600,height=700")
     if (!popup) {
       setErrorMsg("Popup bloqueado. Permita popups para este site e tente novamente.")
