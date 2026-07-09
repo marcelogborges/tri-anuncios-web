@@ -15,6 +15,17 @@ export type GeneratedCopyVariation = {
   text: string
 }
 
+export type AdMediaType = "static_image" | "video" | "carousel"
+
+export type CarouselCardResponse = {
+  id: number
+  position: number
+  headline: string | null
+  description: string | null
+  link: string | null
+  image_url: string | null
+}
+
 export type BaseAdCreative = {
   id: number
   organization_id: number
@@ -30,8 +41,11 @@ export type BaseAdCreative = {
   target_age_max: number | null
   target_social_classes: string[]
   geo_locations: Record<string, unknown>
+  media_type: AdMediaType
   feed_image_url: string | null
   story_image_url: string | null
+  video_url: string | null
+  carousel_cards: CarouselCardResponse[]
   created_at: string
   updated_at: string
 }
@@ -45,13 +59,27 @@ export type CreateBaseAdCreativePayload = {
   link?: string
   call_to_action?: string
   optimization_goal?: string
+  media_type?: AdMediaType
   geo_locations?: Record<string, unknown>
+}
+
+export type CarouselCardUpload = {
+  image: File
+  headline?: string
+  description?: string
+  link?: string
+}
+
+export type CreateBaseAdCreativeMedia = {
+  feedFile?: File
+  storyFile?: File
+  videoFile?: File
+  carouselCards?: CarouselCardUpload[]
 }
 
 const buildFormData = (
   payload: CreateBaseAdCreativePayload,
-  feedFile?: File,
-  storyFile?: File
+  media: CreateBaseAdCreativeMedia
 ): FormData => {
   const formData = new FormData()
   const prefix = "base_ad_creative"
@@ -67,8 +95,18 @@ const buildFormData = (
     }
   }
 
-  if (feedFile) formData.append(`${prefix}[feed_image]`, feedFile)
-  if (storyFile) formData.append(`${prefix}[story_image]`, storyFile)
+  if (media.feedFile) formData.append(`${prefix}[feed_image]`, media.feedFile)
+  if (media.storyFile) formData.append(`${prefix}[story_image]`, media.storyFile)
+  if (media.videoFile) formData.append(`${prefix}[video]`, media.videoFile)
+
+  media.carouselCards?.forEach((card, index) => {
+    const cardPrefix = `${prefix}[carousel_cards_attributes][${index}]`
+    formData.append(`${cardPrefix}[position]`, String(index))
+    formData.append(`${cardPrefix}[image]`, card.image)
+    if (card.headline) formData.append(`${cardPrefix}[headline]`, card.headline)
+    if (card.description) formData.append(`${cardPrefix}[description]`, card.description)
+    if (card.link) formData.append(`${cardPrefix}[link]`, card.link)
+  })
 
   return formData
 }
@@ -111,12 +149,12 @@ export const generateCopy = async (inputs: CopyInputs): Promise<GeneratedCopyVar
 
 export const createBaseAdCreative = async (
   payload: CreateBaseAdCreativePayload,
-  feedFile?: File,
-  storyFile?: File
+  media: CreateBaseAdCreativeMedia = {}
 ) => {
-  const hasFile = feedFile || storyFile
+  const hasFile =
+    media.feedFile || media.storyFile || media.videoFile || (media.carouselCards?.length ?? 0) > 0
   const body = hasFile
-    ? buildFormData(payload, feedFile, storyFile)
+    ? buildFormData(payload, media)
     : { base_ad_creative: payload }
   const res = await api<{ base_ad_creative: BaseAdCreative }>("/api/v1/base_ad_creatives", {
     method: "POST",

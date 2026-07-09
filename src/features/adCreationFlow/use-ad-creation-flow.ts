@@ -7,9 +7,19 @@ import { clearAdImageFiles } from "@/features/adCreationFlow/ad-image-store"
 const STORAGE_KEY = "tri-anuncios:ad-creation-flow"
 const TTL_MS = 30 * 60 * 1000
 
+export type CarouselCardData = {
+  fileName: string
+  previewUrl: string
+  headline?: string
+  description?: string
+  link?: string
+}
+
 export type AdImageData =
   | { type: "file"; feedFileName: string; feedPreviewUrl: string; storyFileName?: string; storyPreviewUrl?: string }
   | { type: "generated"; dataUrl: string }
+  | { type: "video"; videoFileName: string; videoPreviewUrl: string; thumbFileName: string; thumbPreviewUrl: string }
+  | { type: "carousel"; cards: CarouselCardData[] }
 
 export type AdCreationFlowState = {
   step: number

@@ -16,7 +16,8 @@ import { createAdRequest } from "@/api/ad-request"
 import { CompleteOrganizationStep } from "@/features/adCreationFlow/complete-organization-step"
 import { AdBasicInfoStep } from "@/features/adCreationFlow/ad-basic-info-step"
 import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
-import { AdImageStep } from "@/features/adCreationFlow/ad-image-step"
+import { AdMediaStep } from "@/features/adCreationFlow/ad-media-step"
+import type { AdMediaFiles, AdMediaLivePreview } from "@/features/adCreationFlow/ad-media-step"
 import type { AdImageData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { AdMessageStep } from "@/features/adCreationFlow/ad-message-step"
 import { GeoLocationStep } from "@/features/adCreationFlow/geo-location-step"
@@ -25,7 +26,14 @@ import { AdObjectiveStep } from "@/features/adCreationFlow/ad-objective-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
 import { ReviewStep } from "@/features/adCreationFlow/review-step"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
-import { saveAdImageFile, loadAdImageFiles } from "@/features/adCreationFlow/ad-image-store"
+import {
+  saveAdImageFile,
+  loadAdImageFiles,
+  loadAdVideoFiles,
+  loadCarouselFiles,
+  clearCarouselFiles,
+  carouselSlot,
+} from "@/features/adCreationFlow/ad-image-store"
 import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
 import { getPlatformAccounts } from "@/api/platform-accounts"
 import { MetaConnectModal } from "@/features/myAds/meta-connect-modal"
@@ -43,7 +51,18 @@ const CriarAnuncioPage = () => {
   const [createdAdRequestId, setCreatedAdRequestId] = useState<number | null>(null)
   const [adFeedImageFile, setAdFeedImageFile] = useState<File | null>(null)
   const [adStoryImageFile, setAdStoryImageFile] = useState<File | null>(null)
-  const [livePreview, setLivePreview] = useState<{ name?: string; message?: string; feedImageUrl?: string; storyImageUrl?: string; link?: string }>({})
+  const [adVideoFile, setAdVideoFile] = useState<File | null>(null)
+  const [adThumbFile, setAdThumbFile] = useState<File | null>(null)
+  const [carouselFiles, setCarouselFiles] = useState<Array<File | null>>([])
+  const [livePreview, setLivePreview] = useState<{
+    name?: string
+    message?: string
+    feedImageUrl?: string
+    storyImageUrl?: string
+    videoUrl?: string
+    carousel?: Array<{ imageUrl: string; headline?: string }>
+    link?: string
+  }>({})
   const flow = useAdCreationFlow()
 
   const fetchOrganization = useCallback(async () => {
@@ -72,24 +91,59 @@ const CriarAnuncioPage = () => {
 
     const revoke: string[] = []
 
+    const makeUrl = (file: File) => {
+      const url = URL.createObjectURL(file)
+      revoke.push(url)
+      return url
+    }
+
     const hydrateImages = async () => {
       try {
+        const adImage = flow.adImage
+
+        if (adImage?.type === "video") {
+          const { video, thumb } = await loadAdVideoFiles()
+          if (!video || !thumb) {
+            flow.update({ adImage: null, step: Math.min(flow.step, 3) })
+            return
+          }
+          setAdVideoFile(video)
+          setAdThumbFile(thumb)
+          const videoUrl = makeUrl(video)
+          const thumbUrl = makeUrl(thumb)
+          setLivePreview((p) => ({ ...p, videoUrl, feedImageUrl: thumbUrl }))
+          flow.update({
+            adImage: { ...adImage, videoPreviewUrl: videoUrl, thumbPreviewUrl: thumbUrl },
+          })
+          return
+        }
+
+        if (adImage?.type === "carousel") {
+          const files = await loadCarouselFiles(adImage.cards.length)
+          if (files.some((f) => !f)) {
+            flow.update({ adImage: null, step: Math.min(flow.step, 3) })
+            return
+          }
+          setCarouselFiles(files)
+          const cards = adImage.cards.map((card, i) => ({ ...card, previewUrl: makeUrl(files[i]!) }))
+          setLivePreview((p) => ({
+            ...p,
+            carousel: cards.map((c) => ({ imageUrl: c.previewUrl, headline: c.headline })),
+          }))
+          flow.update({ adImage: { ...adImage, cards } })
+          return
+        }
+
         const { feed, story } = await loadAdImageFiles()
 
         setAdFeedImageFile(feed)
         setAdStoryImageFile(story)
 
-        const adImage = flow.adImage
-
         if (adImage?.type === "file" && !feed) {
           flow.update({ adImage: null, step: Math.min(flow.step, 3) })
         } else if (adImage?.type === "file") {
-          const feedUrl = URL.createObjectURL(feed!)
-          const storyUrl = story ? URL.createObjectURL(story) : undefined
-
-          revoke.push(feedUrl)
-
-          if (storyUrl) revoke.push(storyUrl)
+          const feedUrl = makeUrl(feed!)
+          const storyUrl = story ? makeUrl(story) : undefined
 
           setLivePreview((p) => ({ ...p, feedImageUrl: feedUrl, storyImageUrl: storyUrl }))
           flow.update({
@@ -122,11 +176,52 @@ const CriarAnuncioPage = () => {
     flow.update({ adBasicInfo: data, step: 2 })
   }
 
-  const handleImageComplete = (image: AdImageData, feedFile: File | null, storyFile: File | null) => {
-    setAdFeedImageFile(feedFile)
-    setAdStoryImageFile(storyFile)
-    saveAdImageFile("feed", feedFile)
-    saveAdImageFile("story", storyFile)
+  const handleMediaComplete = (image: AdImageData, files: AdMediaFiles) => {
+    if (image.type === "video") {
+      if (files.video?.video) {
+        setAdVideoFile(files.video.video)
+        saveAdImageFile("video", files.video.video)
+      }
+      if (files.video?.thumb) {
+        setAdThumbFile(files.video.thumb)
+        saveAdImageFile("thumb", files.video.thumb)
+      }
+      setAdFeedImageFile(null)
+      setAdStoryImageFile(null)
+      setCarouselFiles([])
+      saveAdImageFile("feed", null)
+      saveAdImageFile("story", null)
+      clearCarouselFiles()
+    } else if (image.type === "carousel") {
+      // merge with files restored from IndexedDB: a null entry means the card
+      // kept its previously stored file
+      const merged = (files.carousel ?? []).map((f, i) => f ?? carouselFiles[i] ?? null)
+      setCarouselFiles(merged)
+      clearCarouselFiles().then(() => {
+        merged.forEach((f, i) => {
+          if (f) saveAdImageFile(carouselSlot(i), f)
+        })
+      })
+      setAdFeedImageFile(null)
+      setAdStoryImageFile(null)
+      setAdVideoFile(null)
+      setAdThumbFile(null)
+      saveAdImageFile("feed", null)
+      saveAdImageFile("story", null)
+      saveAdImageFile("video", null)
+      saveAdImageFile("thumb", null)
+    } else {
+      setAdFeedImageFile(files.feed ?? null)
+      setAdStoryImageFile(files.story ?? null)
+      saveAdImageFile("feed", files.feed ?? null)
+      saveAdImageFile("story", files.story ?? null)
+      setAdVideoFile(null)
+      setAdThumbFile(null)
+      setCarouselFiles([])
+      saveAdImageFile("video", null)
+      saveAdImageFile("thumb", null)
+      clearCarouselFiles()
+    }
     flow.update({ adImage: image, step: 4 })
   }
 
@@ -154,6 +249,12 @@ const CriarAnuncioPage = () => {
     }
   }
 
+  const mediaTypeFromFlow = (): "static_image" | "video" | "carousel" => {
+    if (flow.adImage?.type === "video") return "video"
+    if (flow.adImage?.type === "carousel") return "carousel"
+    return "static_image"
+  }
+
   const buildCreativePayload = (): CreateBaseAdCreativePayload => ({
     organization_id: user!.organization_id,
     name: flow.adBasicInfo?.name ?? "",
@@ -161,6 +262,7 @@ const CriarAnuncioPage = () => {
     message: flow.adMessage ?? undefined,
     optimization_goal: flow.optimizationGoal?.objective ?? undefined,
     link: flow.optimizationGoal?.link ?? undefined,
+    media_type: mediaTypeFromFlow(),
     geo_locations: buildGeoLocations(),
   })
 
@@ -183,13 +285,37 @@ const CriarAnuncioPage = () => {
     return payload
   }
 
+  const buildCreativeMedia = () => {
+    const mediaType = mediaTypeFromFlow()
+
+    if (mediaType === "video") {
+      return {
+        videoFile: adVideoFile ?? undefined,
+        // the thumbnail doubles as the required video cover (feed_image)
+        feedFile: adThumbFile ?? undefined,
+      }
+    }
+
+    if (mediaType === "carousel") {
+      const cards = flow.adImage?.type === "carousel" ? flow.adImage.cards : []
+      return {
+        carouselCards: cards.flatMap((card, i) => {
+          const file = carouselFiles[i]
+          if (!file) return []
+          return [{ image: file, headline: card.headline, description: card.description, link: card.link }]
+        }),
+      }
+    }
+
+    return {
+      feedFile: adFeedImageFile ?? undefined,
+      storyFile: adStoryImageFile ?? adFeedImageFile ?? undefined,
+    }
+  }
+
   const createDraftAdRequest = async () => {
     if (!user) return null
-    const creative = await createBaseAdCreative(
-      buildCreativePayload(),
-      adFeedImageFile ?? undefined,
-      adStoryImageFile ?? adFeedImageFile ?? undefined
-    )
+    const creative = await createBaseAdCreative(buildCreativePayload(), buildCreativeMedia())
     const adRequest = await createAdRequest({
       organization_id: user.organization_id,
       user_id: user.id,
@@ -294,13 +420,21 @@ const CriarAnuncioPage = () => {
         )
       case 3:
         return (
-          <AdImageStep
+          <AdMediaStep
             initialValue={flow.adImage}
             adMessage={flow.adMessage}
             adName={flow.adBasicInfo?.name}
             adProductService={flow.adBasicInfo?.productService}
-            onComplete={handleImageComplete}
-            onLiveChange={(feedUrl, storyUrl) => setLivePreview((p) => ({ ...p, feedImageUrl: feedUrl ?? undefined, storyImageUrl: storyUrl ?? undefined }))}
+            onComplete={handleMediaComplete}
+            onLiveChange={(preview: AdMediaLivePreview) =>
+              setLivePreview((p) => ({
+                ...p,
+                feedImageUrl: preview.feedUrl ?? undefined,
+                storyImageUrl: preview.storyUrl ?? undefined,
+                videoUrl: preview.videoUrl ?? undefined,
+                carousel: preview.carousel,
+              }))
+            }
           />
         )
       case 4:
@@ -339,6 +473,8 @@ const CriarAnuncioPage = () => {
     message: livePreview.message ?? flow.adMessage ?? undefined,
     feedImageUrl: livePreview.feedImageUrl,
     storyImageUrl: livePreview.storyImageUrl,
+    videoUrl: livePreview.videoUrl,
+    carousel: livePreview.carousel,
     organizationName: organization?.name,
     link: livePreview.link ?? flow.optimizationGoal?.link,
   }

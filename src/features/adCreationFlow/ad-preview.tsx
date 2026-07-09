@@ -1,13 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+
+export type AdPreviewCarouselCard = {
+  imageUrl: string
+  headline?: string
+}
 
 export type AdPreviewProps = {
   name?: string | null
   message?: string
   feedImageUrl?: string
   storyImageUrl?: string
+  videoUrl?: string
+  carousel?: AdPreviewCarouselCard[]
   organizationName?: string
   link?: string | null
   className?: string
@@ -56,10 +63,12 @@ const getLinkInfo = (link?: string | null): { domain: string; cta: string } => {
 
 const StoryFrame = ({
   imageUrl,
+  videoUrl,
   caption,
   businessName,
 }: {
   imageUrl?: string
+  videoUrl?: string
   caption?: string
   businessName: string
 }) => (
@@ -68,7 +77,9 @@ const StoryFrame = ({
     style={{ width: "100%", maxWidth: 300, aspectRatio: "9/16" }}
   >
     <div className="absolute inset-0">
-      {imageUrl ? (
+      {videoUrl ? (
+        <video src={videoUrl} className="h-full w-full object-cover" autoPlay muted loop playsInline />
+      ) : imageUrl ? (
         <img src={imageUrl} alt="" className="h-full w-full object-cover" />
       ) : (
         <div
@@ -144,14 +155,75 @@ const StoryFrame = ({
   </div>
 )
 
+const CarouselMedia = ({ cards }: { cards: AdPreviewCarouselCard[] }) => {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const handleScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    setActiveIndex(Math.round(el.scrollLeft / el.clientWidth))
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        style={{
+          display: "flex",
+          overflowX: "auto",
+          scrollSnapType: "x mandatory",
+          scrollbarWidth: "none",
+        }}
+      >
+        {cards.map((card, index) => (
+          <div
+            key={index}
+            style={{ position: "relative", flexShrink: 0, width: "100%", aspectRatio: "1/1", scrollSnapAlign: "start", background: IG_COLORS.imagePlaceholder }}
+          >
+            <img src={card.imageUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            {card.headline && (
+              <span style={{ position: "absolute", left: 8, bottom: 8, background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 6, maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {card.headline}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 9999 }}>
+        {activeIndex + 1}/{cards.length}
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 4, padding: "8px 0 2px" }}>
+        {cards.map((_, index) => (
+          <span
+            key={index}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 9999,
+              background: index === activeIndex ? IG_COLORS.ctaButton : "#c7c7c7",
+              transition: "background 150ms",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const FeedFrame = ({
   imageUrl,
+  videoUrl,
+  carousel,
   caption,
   name,
   businessName,
   link,
 }: {
   imageUrl?: string
+  videoUrl?: string
+  carousel?: AdPreviewCarouselCard[]
   caption?: string
   name?: string
   businessName: string
@@ -214,19 +286,25 @@ const FeedFrame = ({
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
         </button>
       </div>
-      <div style={{ position: "relative", aspectRatio: "1/1", width: "100%", overflow: "hidden", background: IG_COLORS.imagePlaceholder }}>
-        {imageUrl ? (
-          <img src={imageUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <>
-            <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(135deg, rgba(0,0,0,0.02) 0 12px, rgba(0,0,0,0.04) 12px 24px)" }} />
-            <div style={{ position: "absolute", inset: 0, zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: IG_COLORS.textMuted, fontSize: "0.75rem", fontWeight: 600 }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" ry="3" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-              <span>Sua imagem aqui</span>
-            </div>
-          </>
-        )}
-      </div>
+      {carousel && carousel.length > 0 ? (
+        <CarouselMedia cards={carousel} />
+      ) : (
+        <div style={{ position: "relative", aspectRatio: "1/1", width: "100%", overflow: "hidden", background: videoUrl ? "#000" : IG_COLORS.imagePlaceholder }}>
+          {videoUrl ? (
+            <video src={videoUrl} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} autoPlay muted loop playsInline />
+          ) : imageUrl ? (
+            <img src={imageUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <>
+              <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(135deg, rgba(0,0,0,0.02) 0 12px, rgba(0,0,0,0.04) 12px 24px)" }} />
+              <div style={{ position: "absolute", inset: 0, zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: IG_COLORS.textMuted, fontSize: "0.75rem", fontWeight: 600 }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" ry="3" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                <span>Sua imagem aqui</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "8px 14px", color: IG_COLORS.text }}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
@@ -258,7 +336,7 @@ const FeedFrame = ({
   )
 }
 
-export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, organizationName = "Meu negócio", link, className }: AdPreviewProps) => {
+export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl, carousel, organizationName = "Meu negócio", link, className }: AdPreviewProps) => {
   const [tab, setTab] = useState<Tab>("feed")
 
   return (
@@ -282,13 +360,16 @@ export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, organiza
       </div>
       {tab === "story" ? (
         <StoryFrame
-          imageUrl={storyImageUrl}
+          imageUrl={storyImageUrl ?? (carousel && carousel.length > 0 ? carousel[0].imageUrl : undefined)}
+          videoUrl={videoUrl}
           caption={message}
           businessName={organizationName}
         />
       ) : (
         <FeedFrame
           imageUrl={feedImageUrl}
+          videoUrl={videoUrl}
+          carousel={carousel}
           caption={message}
           name={name ?? undefined}
           businessName={organizationName}

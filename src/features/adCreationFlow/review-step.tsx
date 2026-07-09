@@ -36,7 +36,7 @@ const ReviewRow = ({
 }) => (
   <div className="grid grid-cols-[110px_1fr_auto] items-start gap-3 py-3 border-b border-border last:border-b-0">
     <p className="text-label-caps text-muted-foreground pt-0.5">{label}</p>
-    <p className="text-body-sm break-words">{value}</p>
+    <p className="text-body-sm break-words min-w-0 [overflow-wrap:anywhere]">{value}</p>
     <button
       type="button"
       onClick={() => onEdit(step)}
@@ -56,22 +56,31 @@ const ReviewBlock = ({ title, children }: { title: string; children: React.React
   </div>
 )
 
-const feedImageLabel = (image: AdCreationFlowState["adImage"]): string => {
-  if (!image) return "—"
-  if (image.type === "file") return `📎 ${image.feedFileName}`
-  return "🖼 Imagem gerada por IA"
-}
+const mediaRows = (image: AdCreationFlowState["adImage"]): Array<{ label: string; value: string }> => {
+  if (!image) return [{ label: "Mídia", value: "—" }]
 
-const storyImageLabel = (image: AdCreationFlowState["adImage"]): string | null => {
-  if (!image || image.type === "generated") return null
-  return image.storyFileName ? `📎 ${image.storyFileName}` : null
+  switch (image.type) {
+    case "file": {
+      const rows = [{ label: "Imagem feed", value: `📎 ${image.feedFileName}` }]
+      if (image.storyFileName) rows.push({ label: "Imagem story", value: `📎 ${image.storyFileName}` })
+      return rows
+    }
+    case "generated":
+      return [{ label: "Imagem", value: "🖼 Imagem gerada por IA" }]
+    case "video":
+      return [
+        { label: "Vídeo", value: `🎬 ${image.videoFileName || "Vídeo enviado"}` },
+        { label: "Capa", value: `📎 ${image.thumbFileName || "Capa enviada"}` },
+      ]
+    case "carousel":
+      return [{ label: "Carrossel", value: `🖼 ${image.cards.length} cartões` }]
+  }
 }
 
 export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onPublish }: Props) => {
   const { adBasicInfo, adImage, adMessage, geoLocation, optimizationGoal } = flow
 
-  const feedLabel = feedImageLabel(adImage)
-  const storyLabel = storyImageLabel(adImage)
+  const media = mediaRows(adImage)
 
   return (
     <div className="mx-auto w-full max-w-xl px-8 py-8">
@@ -94,10 +103,9 @@ export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onP
           {adMessage && (
             <ReviewRow label="Mensagem" value={adMessage} step={2} onEdit={onEdit} />
           )}
-          <ReviewRow label="Imagem feed" value={feedLabel} step={3} onEdit={onEdit} />
-          {storyLabel && (
-            <ReviewRow label="Imagem story" value={storyLabel} step={3} onEdit={onEdit} />
-          )}
+          {media.map((row) => (
+            <ReviewRow key={row.label} label={row.label} value={row.value} step={3} onEdit={onEdit} />
+          ))}
         </ReviewBlock>
 
         <ReviewBlock title="Localização">

@@ -14,8 +14,10 @@ export type AdRequestBaseAdCreative = {
   id: number
   name: string
   product_service: string | null
+  media_type: "static_image" | "video" | "carousel"
   feed_image_url: string | null
   story_image_url: string | null
+  cover_image_url: string | null
   message: string | null
   link: string | null
   target_gender: string

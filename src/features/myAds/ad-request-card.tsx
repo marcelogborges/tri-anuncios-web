@@ -45,7 +45,10 @@ type AdRequestCardProps = {
 }
 
 export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
-  const imageUrl = adRequest.base_ad_creative?.feed_image_url ?? adRequest.base_ad_creative?.story_image_url
+  const imageUrl =
+    adRequest.base_ad_creative?.cover_image_url ??
+    adRequest.base_ad_creative?.feed_image_url ??
+    adRequest.base_ad_creative?.story_image_url
   const adName = adRequest.base_ad_creative?.name ?? ""
   const hasImage = Boolean(imageUrl)
   const isDraft = adRequest.status === "draft"
