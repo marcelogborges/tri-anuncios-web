@@ -102,14 +102,14 @@ const AnunciosPage = () => {
     <AuthGuard>
       <Layout>
         <main className="max-w-[1280px] mx-auto px-8 py-10">
-          <div className="flex items-start justify-between mb-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
             <div>
               <h1 className="text-title-1 text-foreground">Meus anúncios</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {adRequests.length} anúncio{adRequests.length !== 1 ? "s" : ""} · {liveCount} ao vivo agora
               </p>
             </div>
-            <Button asChild className="rounded-full h-12 px-6">
+            <Button asChild className="rounded-full h-12 px-6 self-start sm:self-auto">
               <Link href="/anuncios/criar">
                 <Plus className="mr-2 h-4 w-4" />
                 Criar anúncio
@@ -118,13 +118,13 @@ const AnunciosPage = () => {
           </div>
           {error && <p className="text-destructive mb-6">{error}</p>}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="flex bg-muted rounded-full p-1 gap-1">
+            <div className="flex max-w-full overflow-x-auto bg-muted rounded-full p-1 gap-1">
               {TABS.map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+                    "shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all",
                     activeTab === tab.key
                       ? "bg-card text-foreground shadow-[var(--shadow-ambient)]"
                       : "text-muted-foreground"
@@ -152,7 +152,7 @@ const AnunciosPage = () => {
               />
             </div>
           </div>
-          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))" }}>
+          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 360px), 1fr))" }}>
             {gridContent}
             {!isLoading && <AdCreationCtaCard />}
           </div>
