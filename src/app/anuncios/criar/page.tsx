@@ -161,14 +161,27 @@ const CriarAnuncioPage = () => {
     message: flow.adMessage ?? undefined,
     optimization_goal: flow.optimizationGoal?.objective ?? undefined,
     link: flow.optimizationGoal?.link ?? undefined,
-    geo_locations: flow.geoLocation
-      ? {
-          countries: ["BR"],
-          cities: flow.geoLocation.cities.map((c) => ({ key: c.id.toString(), name: c.name, region: c.state })),
-          location_types: ["home", "recent"],
-        }
-      : undefined,
+    geo_locations: buildGeoLocations(),
   })
+
+  const buildGeoLocations = (): Record<string, unknown> | undefined => {
+    const geo = flow.geoLocation
+    const geoCities = geo?.cities ?? []
+    const geoStates = geo?.states ?? []
+    if (geoCities.length === 0 && geoStates.length === 0) return undefined
+
+    const payload: Record<string, unknown> = {
+      countries: ["BR"],
+      location_types: ["home", "recent"],
+    }
+    if (geoCities.length > 0) {
+      payload.cities = geoCities.map((c) => ({ key: c.id.toString(), name: c.name, region: c.state }))
+    }
+    if (geoStates.length > 0) {
+      payload.regions = geoStates.map((s) => ({ key: s.id.toString(), name: s.name, region: s.uf }))
+    }
+    return payload
+  }
 
   const createDraftAdRequest = async () => {
     if (!user) return null

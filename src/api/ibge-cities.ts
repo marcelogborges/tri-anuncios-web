@@ -57,7 +57,7 @@ const normalize = (str: string) =>
     .toLowerCase()
 
 export const searchCities = async (query: string): Promise<BrazilianCity[]> => {
-  if (query.length < 3) return []
+  if (query.length < 2) return []
 
   const cities = await fetchAllCities()
   const normalized = normalize(query)

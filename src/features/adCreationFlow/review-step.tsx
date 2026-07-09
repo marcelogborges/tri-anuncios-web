@@ -101,15 +101,18 @@ export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onP
         </ReviewBlock>
 
         <ReviewBlock title="Localização">
-          {geoLocation && geoLocation.cities.length > 0 ? (
+          {geoLocation && ((geoLocation.states?.length ?? 0) > 0 || geoLocation.cities.length > 0) ? (
             <ReviewRow
-              label="Cidades"
-              value={geoLocation.cities.map((c) => `${c.name} · ${c.state}`).join(", ")}
+              label="Locais"
+              value={[
+                ...(geoLocation.states ?? []).map((s) => `${s.name} · Estado`),
+                ...geoLocation.cities.map((c) => `${c.name} · ${c.state}`),
+              ].join(", ")}
               step={4}
               onEdit={onEdit}
             />
           ) : (
-            <ReviewRow label="Cidades" value="Brasil (amplo)" step={4} onEdit={onEdit} />
+            <ReviewRow label="Locais" value="Brasil (amplo)" step={4} onEdit={onEdit} />
           )}
         </ReviewBlock>
 
