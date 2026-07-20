@@ -197,7 +197,7 @@ body {
   }
 }
 
-/* Hero KPI card — gradient on desktop, plain card on narrow mobile */
+/* Hero KPI card — gradient highlight in every viewport */
 .kpi-hero {
   background: linear-gradient(135deg, var(--primary), #00553a);
   color: var(--primary-foreground);
@@ -205,15 +205,3 @@ body {
 .kpi-hero .kpi-hero-label { color: rgba(255, 255, 255, 0.8); }
 .kpi-hero .kpi-hero-icon { background: rgba(255, 255, 255, 0.1); color: #b4f4d3; }
 .kpi-hero .kpi-hero-sub { color: rgba(255, 255, 255, 0.8); }
-
-@media (max-width: 480px) {
-  .kpi-hero {
-    background: var(--card);
-    color: var(--foreground);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-ambient);
-  }
-  .kpi-hero .kpi-hero-label { color: var(--muted-foreground); }
-  .kpi-hero .kpi-hero-icon { background: rgba(0, 108, 73, 0.1); color: var(--primary); }
-  .kpi-hero .kpi-hero-sub { color: var(--muted-foreground); }
-}

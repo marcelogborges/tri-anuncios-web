@@ -9,9 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@measured/puck": "^0.20.2",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-popover": "^1.1.19",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
@@ -25,9 +27,11 @@
     "next-themes": "^0.4.6",
     "react": "19.2.4",
     "react-colorful": "^5.6.1",
+    "react-day-picker": "^10.0.1",
     "react-dom": "19.2.4",
     "react-native": "^0.85.2",
     "react-native-web": "^0.21.2",
+    "recharts": "2.15.4",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7"
   },

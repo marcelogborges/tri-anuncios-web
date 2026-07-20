@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Clapperboard, GalleryHorizontalEnd, ImageIcon, Sparkles } from "lucide-react"
+import { ChevronDown, Clapperboard, GalleryHorizontalEnd, ImageIcon, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { AdImageData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { StepHeader } from "@/features/adCreationFlow/step-header"
+import { CardOption } from "@/features/adCreationFlow/card-option"
 import { AdImageUpload } from "@/features/adCreationFlow/ad-image-upload"
 import { AdImageGenerate } from "@/features/adCreationFlow/ad-image-generate"
 import { AdVideoUpload } from "@/features/adCreationFlow/ad-video-upload"
@@ -59,21 +60,26 @@ export const AdMediaStep = ({
   adProductService,
 }: Props) => {
   const [kind, setKind] = useState<AdMediaKind>(kindFromInitial(initialValue))
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [imageMode, setImageMode] = useState<ImageMode>(
     initialValue?.type === "generated" ? "generate" : "upload"
   )
 
   const handleKindChange = (next: AdMediaKind) => {
+    setPickerOpen(false)
+    if (next === kind) return
     setKind(next)
     // clears the side preview so a leftover image/video from another kind never lingers
     onLiveChange?.({})
   }
 
+  const selectedOption = MEDIA_OPTIONS.find((option) => option.kind === kind) ?? MEDIA_OPTIONS[0]
+
   return (
     <div className="mx-auto w-full max-w-xl px-8 py-8">
       <StepHeader eyebrow="PASSO 3 · CRIATIVO" title="Escolha a mídia do anúncio" />
 
-      <div className="mb-6 grid grid-cols-3 gap-2">
+      <div className="mb-6 hidden sm:grid grid-cols-3 gap-2">
         {MEDIA_OPTIONS.map(({ kind: optionKind, label, description, icon: Icon }) => {
           const active = kind === optionKind
           return (
@@ -95,6 +101,42 @@ export const AdMediaStep = ({
             </button>
           )
         })}
+      </div>
+
+      <div className="mb-6 sm:hidden">
+        {pickerOpen ? (
+          <div className="flex flex-col gap-2">
+            {MEDIA_OPTIONS.map(({ kind: optionKind, label, description, icon: Icon }) => (
+              <CardOption
+                key={optionKind}
+                icon={<Icon className="h-5 w-5" />}
+                title={label}
+                description={description}
+                selected={kind === optionKind}
+                onClick={() => handleKindChange(optionKind)}
+              />
+            ))}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            aria-expanded={false}
+            className="flex w-full items-center gap-4 rounded-lg border-2 border-primary bg-[var(--primary-soft)] p-[14px_20px] text-left transition-colors hover:bg-[var(--primary-soft)]/70"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-card text-primary">
+              <selectedOption.icon className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-body-sm font-semibold text-foreground">{selectedOption.label}</p>
+              <p className="text-label-caps text-muted-foreground mt-0.5">{selectedOption.description}</p>
+            </div>
+            <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-primary">
+              Trocar
+              <ChevronDown className="h-4 w-4" />
+            </span>
+          </button>
+        )}
       </div>
 
       {kind === "image" && (

@@ -70,20 +70,20 @@ export const AdImageGenerate = ({
     setProductPreviewUrl(url)
   }
 
+  const fileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve((reader.result as string).split(",")[1])
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
   const handleGenerate = async () => {
-    if (!productFile || !selectedStyle) return
+    if (!selectedStyle) return
     setGenerateStatus("loading")
     setErrorMessage(null)
     try {
-      const reader = new FileReader()
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string
-          resolve(result.split(",")[1])
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(productFile)
-      })
+      const base64 = productFile ? await fileToBase64(productFile) : undefined
       const inputs: GenerateImageInputs = {
         productImage: base64,
         adText: adMessage ?? "",
@@ -162,7 +162,13 @@ export const AdImageGenerate = ({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-body-sm font-semibold mb-2">Foto do produto</p>
+        <p className="text-body-sm font-semibold mb-2">
+          Foto do produto{" "}
+          <span className="font-normal text-muted-foreground">(opcional)</span>
+        </p>
+        <p className="text-label-caps text-muted-foreground mb-2">
+          Quando enviada, é usada como referência principal do criativo.
+        </p>
         <div
           onClick={() => !productPreviewUrl && productInputRef.current?.click()}
           onDrop={(e) => {
@@ -229,7 +235,7 @@ export const AdImageGenerate = ({
       </div>
       <Button
         className="w-full rounded-full"
-        disabled={!productFile || !selectedStyle}
+        disabled={!selectedStyle}
         onClick={handleGenerate}
       >
         Gerar imagem

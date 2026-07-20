@@ -9,6 +9,22 @@ export type AdRequestStatus =
   | "failed"
   | "rejected"
   | "cancelled"
+  | "scheduled"
+
+export const AD_REQUEST_STATUS_INFO: Record<
+  AdRequestStatus,
+  { label: string; isLive: boolean }
+> = {
+  published: { label: "Ao vivo", isLive: true },
+  partially_published: { label: "Ao vivo", isLive: true },
+  draft: { label: "Rascunho", isLive: false },
+  pending_publication: { label: "Processando", isLive: false },
+  processing: { label: "Processando", isLive: false },
+  scheduled: { label: "Agendado", isLive: false },
+  failed: { label: "Encerrado", isLive: false },
+  rejected: { label: "Encerrado", isLive: false },
+  cancelled: { label: "Encerrado", isLive: false },
+}
 
 export type AdRequestBaseAdCreative = {
   id: number
@@ -49,6 +65,7 @@ export type AdRequest = {
   ad_package_id: number | null
   base_ad_creative_id: number | null
   status: AdRequestStatus
+  scheduled_start_at: string | null
   created_at: string
   updated_at: string
   base_ad_creative: AdRequestBaseAdCreative
@@ -104,11 +121,18 @@ export const updateAdRequest = async (
   return res.ad_request
 }
 
-export const publishAdRequest = async (id: number | string, adPackageId: number) => {
+export const publishAdRequest = async (
+  id: number | string,
+  adPackageId: number,
+  scheduledStartAt?: string | null
+) => {
   const res = await api<AdRequestResponse>(`/api/v1/ad_requests/${id}/publish`, {
     method: "POST",
     body: {
-      ad_request: { ad_package_id: adPackageId },
+      ad_request: {
+        ad_package_id: adPackageId,
+        ...(scheduledStartAt ? { scheduled_start_at: scheduledStartAt } : {}),
+      },
     },
   })
   return res.ad_request

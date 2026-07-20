@@ -43,7 +43,7 @@ const EstatisticasPage = () => {
             <p className="text-destructive">{error}</p>
           </div>
         )}
-        {adRequest && <AdStatistics adRequest={adRequest} />}
+        {adRequest && <AdStatistics key={adRequest.id} adRequest={adRequest} />}
       </Layout>
     </AuthGuard>
   )

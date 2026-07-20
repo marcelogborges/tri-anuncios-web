@@ -3,6 +3,7 @@ import { api } from "@/lib/api"
 export type Organization = {
   id: number
   name: string
+  slug: string
   document: string | null
   sector: string | null
   niche: string | null

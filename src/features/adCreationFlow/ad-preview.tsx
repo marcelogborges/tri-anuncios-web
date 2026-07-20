@@ -376,7 +376,7 @@ export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl
           link={link}
         />
       )}
-      <p className="text-label-caps text-muted-foreground text-center">
+      <p className="text-label-caps text-muted-foreground text-center max-lg:hidden">
         Prévia do anúncio · atualiza conforme você preenche
       </p>
     </div>

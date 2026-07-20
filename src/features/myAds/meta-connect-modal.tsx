@@ -66,7 +66,7 @@ export const MetaConnectModal = ({
     }
 
     prefetch()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [open])
 
   useEffect(() => {

@@ -5,39 +5,9 @@ import Link from "next/link"
 import { ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { AdRequest, AdRequestStatus } from "@/api/ad-request"
+import { AD_REQUEST_STATUS_INFO, type AdRequest } from "@/api/ad-request"
 import { getPlatformPublicationInsights, type InsightsData } from "@/api/platform-publication"
-
-const timeAgo = (dateStr: string): string => {
-  const now = Date.now()
-  const past = new Date(dateStr).getTime()
-  const diffMs = now - past
-  const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 1) return "agora mesmo"
-  if (minutes < 60) return `há ${minutes} minuto${minutes > 1 ? "s" : ""}`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `há ${hours} hora${hours > 1 ? "s" : ""}`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `há ${days} dia${days > 1 ? "s" : ""}`
-  const months = Math.floor(days / 30)
-  return `há ${months} ${months > 1 ? "meses" : "mês"}`
-}
-
-type StatusInfo = {
-  label: string
-  isLive: boolean
-}
-
-const STATUS_INFO: Record<AdRequestStatus, StatusInfo> = {
-  published: { label: "Ao vivo", isLive: true },
-  partially_published: { label: "Ao vivo", isLive: true },
-  draft: { label: "Rascunho", isLive: false },
-  pending_publication: { label: "Processando", isLive: false },
-  processing: { label: "Processando", isLive: false },
-  failed: { label: "Encerrado", isLive: false },
-  rejected: { label: "Encerrado", isLive: false },
-  cancelled: { label: "Encerrado", isLive: false },
-}
+import { formatDayMonthTime, timeAgo } from "@/lib/format"
 
 type AdRequestCardProps = {
   adRequest: AdRequest
@@ -53,7 +23,7 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
   const hasImage = Boolean(imageUrl)
   const isDraft = adRequest.status === "draft"
   const isProcessing = adRequest.status === "processing" || adRequest.status === "pending_publication"
-  const statusInfo = STATUS_INFO[adRequest.status] ?? { label: adRequest.status, isLive: false }
+  const statusInfo = AD_REQUEST_STATUS_INFO[adRequest.status] ?? { label: adRequest.status, isLive: false }
   const pubCount = adRequest.platform_publications?.length ?? 0
 
   const metaPublication = adRequest.platform_publications?.find(p => p.provider === "meta")
@@ -76,11 +46,15 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
     loadInsights()
   }, [metaPublication?.id, statusInfo.isLive])
 
+  const isScheduled = adRequest.status === "scheduled"
+
   const metaText = isDraft
     ? `Nunca publicado · criado ${timeAgo(adRequest.created_at)}`
-    : isProcessing
-      ? "Processando..."
-      : `${pubCount} ${pubCount !== 1 ? "publicações" : "publicação"} · criado ${timeAgo(adRequest.created_at)}`
+    : isScheduled && adRequest.scheduled_start_at
+      ? `Agendado · começa ${formatDayMonthTime(adRequest.scheduled_start_at)}`
+      : isProcessing
+        ? "Processando..."
+        : `${pubCount} ${pubCount !== 1 ? "publicações" : "publicação"} · criado ${timeAgo(adRequest.created_at)}`
 
   const imageContent = hasImage ? (
     <img src={imageUrl!} alt={adName} className="object-cover w-full h-full" />
@@ -116,7 +90,7 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
             {statusPill}
           </div>
           <p className="text-sm text-muted-foreground">{metaText}</p>
-          {!isDraft && (
+          {!isDraft && !isScheduled && (
             <div className="grid grid-cols-2 overflow-hidden rounded-md border border-border bg-card">
               <div className="border-r border-border bg-card p-3">
                 <p className="text-label-caps uppercase text-muted-foreground">Impressões</p>

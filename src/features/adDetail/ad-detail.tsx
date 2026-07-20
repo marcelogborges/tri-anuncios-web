@@ -6,33 +6,22 @@ import { ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CreativeCard } from "./creative-card"
-import { PublicationBlocks } from "./publication-blocks"
+import {
+  LivePublicationBlock,
+  PublicationHistoryBlock,
+  RepublishCtaBlock,
+} from "./publication-blocks"
 import { getPlatformPublicationInsights } from "@/api/platform-publication"
-import type { AdRequest, AdRequestStatus } from "@/api/ad-request"
+import { AD_REQUEST_STATUS_INFO, type AdRequest } from "@/api/ad-request"
 import type { InsightsData } from "@/api/platform-publication"
-
-const STATUS_INFO: Record<AdRequestStatus, { label: string; isLive: boolean }> = {
-  published: { label: "Ao vivo", isLive: true },
-  partially_published: { label: "Ao vivo", isLive: true },
-  draft: { label: "Rascunho", isLive: false },
-  pending_publication: { label: "Processando", isLive: false },
-  processing: { label: "Processando", isLive: false },
-  failed: { label: "Encerrado", isLive: false },
-  rejected: { label: "Encerrado", isLive: false },
-  cancelled: { label: "Encerrado", isLive: false },
-}
-
-const fmtShortDate = (iso: string) => {
-  const d = new Date(iso)
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`
-}
+import { formatDayMonth } from "@/lib/format"
 
 type AdDetailProps = {
   adRequest: AdRequest
   onRefresh: () => void
 }
 
-export function AdDetail({ adRequest, onRefresh }: AdDetailProps) {
+export const AdDetail = ({ adRequest, onRefresh }: AdDetailProps) => {
   const [insights, setInsights] = useState<InsightsData | null>(null)
 
   const isLive =
@@ -44,19 +33,31 @@ export function AdDetail({ adRequest, onRefresh }: AdDetailProps) {
 
   useEffect(() => {
     if (!activePub) return
-    getPlatformPublicationInsights(adRequest.id, activePub.id)
-      .then((res) => {
+    const loadInsights = async () => {
+      try {
+        const res = await getPlatformPublicationInsights(adRequest.id, activePub.id)
         const data = res.data
         if (data && "impressions" in data) {
           setInsights(data as InsightsData)
         }
-      })
-      .catch(() => {})
+      } catch {}
+    }
+    loadInsights()
   }, [activePub?.id])
 
-  const statusInfo = STATUS_INFO[adRequest.status] ?? { label: adRequest.status, isLive: false }
+  const statusInfo = AD_REQUEST_STATUS_INFO[adRequest.status] ?? { label: adRequest.status, isLive: false }
   const pubCount = adRequest.platform_publications?.length ?? 0
   const adName = adRequest.base_ad_creative?.name ?? ""
+
+  const pubs = adRequest.platform_publications ?? []
+  const durationDays = adRequest.ad_package?.duration_days ?? 14
+  const packageName = adRequest.ad_package?.name ?? null
+  const sortedPubs = [...pubs].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
+  const activePubIndex = activePub
+    ? sortedPubs.findIndex((p) => p.id === activePub.id) + 1
+    : null
 
   return (
     <div
@@ -95,7 +96,7 @@ export function AdDetail({ adRequest, onRefresh }: AdDetailProps) {
             </span>
             <span className="text-body-sm text-muted-foreground">
               · {pubCount} {pubCount !== 1 ? "publicações" : "publicação"} · criado em{" "}
-              {fmtShortDate(adRequest.created_at)}
+              {formatDayMonth(adRequest.created_at)}
             </span>
           </div>
         </div>
@@ -104,14 +105,38 @@ export function AdDetail({ adRequest, onRefresh }: AdDetailProps) {
         </Button>
       </div>
 
-      {/* Two-column grid — single col below lg (1024px ≈ 960px spec) */}
+      {/* Mobile: live → preview → history. Desktop (lg): preview left spanning both rows. */}
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
-        <CreativeCard creative={adRequest.base_ad_creative} />
-        <PublicationBlocks
-          adRequest={adRequest}
-          insights={insights}
-          onPublished={onRefresh}
-        />
+        <div className="lg:col-start-2 lg:row-start-1 w-full">
+          {isLive && activePub && activePubIndex != null ? (
+            <LivePublicationBlock
+              adRequestId={adRequest.id}
+              pub={activePub}
+              pubIndex={activePubIndex}
+              durationDays={durationDays}
+              insights={insights}
+            />
+          ) : (
+            <RepublishCtaBlock
+              adRequestId={adRequest.id}
+              hasPreviousPublications={pubs.length > 0}
+              onPublished={onRefresh}
+            />
+          )}
+        </div>
+        <div className="lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-stretch w-full">
+          <CreativeCard creative={adRequest.base_ad_creative} />
+        </div>
+        <div className="lg:col-start-2 lg:row-start-2 w-full">
+          <PublicationHistoryBlock
+            adRequestId={adRequest.id}
+            publications={pubs}
+            durationDays={durationDays}
+            packageName={packageName}
+            activeInsights={insights}
+            activePubId={activePub?.id ?? null}
+          />
+        </div>
       </div>
     </div>
   )

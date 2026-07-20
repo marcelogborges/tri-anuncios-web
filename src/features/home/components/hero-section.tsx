@@ -13,18 +13,19 @@ export const HeroSection = () => {
             </span>
 
             <h1 className="font-quicksand text-[clamp(2.5rem,4.6vw,4rem)] font-bold leading-[1.05] tracking-tight mb-5 text-balance">
-              Anunciar deveria ser tão simples quanto{" "}
-              <span className="text-primary">atender um cliente.</span>
+              Crie anúncios otimizados{" "}
+              <span className="text-primary">de maneira fácil.</span>
             </h1>
 
             <p className="text-[1.125rem] leading-relaxed text-muted-foreground max-w-[520px] mb-8">
-              Sem gerenciador de tráfego, sem segmentação confusa, sem surpresa no fim do mês. Você escolhe um pacote, a gente publica, você acompanha as mensagens e os cliques que chegam.
+              Anúncios com a sua cara, com copy otimizada, no formato que você quiser. Agende as publicações, acompanhe as estatísticas e espere os resultados chegarem.
             </p>
 
             <div className="flex gap-3 flex-wrap max-[560px]:flex-col">
-              <Button size="lg" className="rounded-full" asChild>
+              <Button size="lg" className="rounded-full font-quicksand font-bold max-[560px]:self-start" asChild>
                 <a href="/anuncios/criar">
-                  Criar meu primeiro anúncio
+                  <span className="max-[560px]:hidden">Criar meu primeiro anúncio</span>
+                  <span className="min-[561px]:hidden">Criar anúncio</span>
                   <ArrowRight className="size-4" />
                 </a>
               </Button>
@@ -34,12 +35,12 @@ export const HeroSection = () => {
               <span className="size-7 rounded-full bg-[var(--primary-soft)] text-primary grid place-items-center shrink-0">
                 <Check className="size-3.5" strokeWidth={2.4} />
               </span>
-              Comece com R$ 100 · sem fidelidade · cancele quando quiser
+              Tudo por R$ 29,90/mês · sem fidelidade · cancele quando quiser
             </div>
           </div>
 
-          <div className="relative aspect-[5/4.2] max-[960px]:max-w-lg max-[960px]:mx-auto max-[960px]:w-full" aria-hidden="true">
-            <div className="absolute top-[14%] left-[-6%] max-[960px]:left-0 z-10 flex items-center gap-2.5 bg-card border rounded-2xl shadow-lift px-3.5 py-3 text-[0.8125rem]">
+          <div className="relative aspect-[5/4.2] max-[640px]:aspect-auto max-[960px]:max-w-lg max-[960px]:mx-auto max-[960px]:w-full" aria-hidden="true">
+            <div className="absolute top-[14%] left-[-6%] max-[960px]:left-0 max-[640px]:hidden z-10 flex items-center gap-2.5 bg-card border rounded-2xl shadow-lift px-3.5 py-3 text-[0.8125rem]">
               <div className="size-8 rounded-lg bg-[var(--primary-soft)] text-primary grid place-items-center shrink-0">
                 <MessageCircle className="size-4" strokeWidth={2.2} />
               </div>
@@ -48,7 +49,7 @@ export const HeroSection = () => {
                 <div className="font-bold font-quicksand">+24 hoje</div>
               </div>
             </div>
-            <div className="absolute bottom-[12%] right-[-4%] max-[960px]:right-0 z-10 flex items-center gap-2.5 bg-card border rounded-2xl shadow-lift px-3.5 py-3 text-[0.8125rem]">
+            <div className="absolute bottom-[12%] right-[-4%] max-[960px]:right-0 max-[640px]:hidden z-10 flex items-center gap-2.5 bg-card border rounded-2xl shadow-lift px-3.5 py-3 text-[0.8125rem]">
               <div className="size-8 rounded-lg grid place-items-center shrink-0" style={{ background: "rgba(16,185,129,0.14)", color: "#10b981" }}>
                 <Activity className="size-4" strokeWidth={2.2} />
               </div>
@@ -57,12 +58,12 @@ export const HeroSection = () => {
                 <div className="font-bold font-quicksand">+12,4%</div>
               </div>
             </div>
-            <div className="absolute inset-0 bg-card border rounded-[22px] shadow-lift overflow-hidden">
+            <div className="absolute inset-0 max-[640px]:static bg-card border rounded-[22px] shadow-lift overflow-hidden">
               <div className="h-9 bg-muted border-b flex items-center px-3.5 gap-1.5">
                 <span className="size-2.5 rounded-full bg-[#f5b3b3]" />
                 <span className="size-2.5 rounded-full bg-[#f5dfa3]" />
                 <span className="size-2.5 rounded-full bg-[#b3e5cb]" />
-                <span className="ml-3 text-xs text-muted-foreground bg-card border rounded-full px-3 py-1">
+                <span className="ml-3 text-xs text-muted-foreground bg-card border rounded-full px-3 py-1 truncate min-w-0">
                   trianuncios.com.br/anuncios/promocao-inverno
                 </span>
               </div>

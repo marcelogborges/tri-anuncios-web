@@ -2,7 +2,7 @@
 
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { useMetaPageConnect } from "@/features/meta-oauth/use-meta-page-connect"
+import { useMetaPageConnect } from "@/features/metaOauth/use-meta-page-connect"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 

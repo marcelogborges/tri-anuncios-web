@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
-import { signUp as apiSignUp } from "@/api/auth"
 import { lookupInviteCode } from "@/api/organization"
 import { ApiError } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -22,7 +21,7 @@ type FlowType = "new-org" | "existing-org"
 export const RegisterForm = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, signUp } = useAuth()
 
   const orgKeyFromUrl = searchParams.get("org_key") ?? ""
   const initialFlow: FlowType = orgKeyFromUrl ? "existing-org" : "new-org"
@@ -109,8 +108,7 @@ export const RegisterForm = () => {
               invite_code: inviteCode.trim(),
             }
 
-      await apiSignUp(payload)
-      router.push("/")
+      await signUp(payload)
     } catch (err) {
       if (err instanceof ApiError) {
         const data = err.data as { errors?: string[] } | null

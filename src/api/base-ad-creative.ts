@@ -1,6 +1,7 @@
 import { api } from "@/lib/api"
 
 export type CopyInputs = {
+  briefing?: string
   name?: string
   product_service?: string
   hook?: string
@@ -112,7 +113,7 @@ const buildFormData = (
 }
 
 export type GenerateImageInputs = {
-  productImage: string
+  productImage?: string
   adText: string
   adName: string
   productService?: string

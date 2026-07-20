@@ -37,7 +37,7 @@ type LiveBlockProps = {
   insights: InsightsData | null
 }
 
-function LivePublicationBlock({
+export function LivePublicationBlock({
   adRequestId,
   pub,
   pubIndex,
@@ -125,7 +125,7 @@ type RepublishCtaProps = {
   onPublished: () => void
 }
 
-function RepublishCtaBlock({ adRequestId, hasPreviousPublications, onPublished }: RepublishCtaProps) {
+export function RepublishCtaBlock({ adRequestId, hasPreviousPublications, onPublished }: RepublishCtaProps) {
   const [modalOpen, setModalOpen] = useState(false)
 
   return (
@@ -192,7 +192,7 @@ type HistoryBlockProps = {
   activePubId: number | null
 }
 
-function PublicationHistoryBlock({
+export function PublicationHistoryBlock({
   adRequestId,
   publications,
   durationDays,
@@ -284,59 +284,3 @@ function PublicationHistoryBlock({
   )
 }
 
-// ─── Public export: right column orchestrator ──────────────────────────────
-
-type PublicationBlocksProps = {
-  adRequest: AdRequest
-  insights: InsightsData | null
-  onPublished: () => void
-}
-
-export function PublicationBlocks({ adRequest, insights, onPublished }: PublicationBlocksProps) {
-  const isLive =
-    adRequest.status === "published" || adRequest.status === "partially_published"
-
-  const pubs = adRequest.platform_publications ?? []
-  const durationDays = adRequest.ad_package?.duration_days ?? 14
-  const packageName = adRequest.ad_package?.name ?? null
-
-  const activePub = pubs.find(
-    (p) => p.status === "published"
-  ) ?? (isLive ? pubs[pubs.length - 1] : null)
-
-  const sortedPubs = [...pubs].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  )
-  const activePubIndex = activePub
-    ? sortedPubs.findIndex((p) => p.id === activePub.id) + 1
-    : null
-
-  return (
-    <div className="flex flex-col gap-6">
-      {isLive && activePub && activePubIndex != null ? (
-        <LivePublicationBlock
-          adRequestId={adRequest.id}
-          pub={activePub}
-          pubIndex={activePubIndex}
-          durationDays={durationDays}
-          insights={insights}
-        />
-      ) : (
-        <RepublishCtaBlock
-          adRequestId={adRequest.id}
-          hasPreviousPublications={pubs.length > 0}
-          onPublished={onPublished}
-        />
-      )}
-
-      <PublicationHistoryBlock
-        adRequestId={adRequest.id}
-        publications={pubs}
-        durationDays={durationDays}
-        packageName={packageName}
-        activeInsights={insights}
-        activePubId={activePub?.id ?? null}
-      />
-    </div>
-  )
-}

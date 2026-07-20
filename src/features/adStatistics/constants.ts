@@ -5,7 +5,6 @@ export const DATE_PRESETS: { key: DatePreset; label: string }[] = [
   { key: "today", label: "Hoje" },
   { key: "yesterday", label: "Ontem" },
   { key: "last_7d", label: "7 dias" },
-  { key: "last_30d", label: "30 dias" },
   { key: "maximum", label: "Total" },
 ]
 
@@ -16,6 +15,7 @@ export const STATUS_CONFIG: Record<
   draft: { label: "Rascunho", variant: "secondary" },
   pending_publication: { label: "Processando", variant: "secondary" },
   processing: { label: "Processando", variant: "tertiary" },
+  scheduled: { label: "Agendado", variant: "secondary" },
   partially_published: { label: "Parcialmente publicado", variant: "tertiary" },
   published: { label: "Publicado", variant: "default" },
   failed: { label: "Falhou", variant: "destructive" },

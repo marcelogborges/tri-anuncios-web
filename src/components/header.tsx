@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { LogOut, Megaphone, Plus } from "lucide-react"
+import { LayoutTemplate, LogOut, Megaphone, Plus } from "lucide-react"
 
 import { useAuth } from "@/lib/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -76,6 +76,12 @@ export const Header = () => {
                 <Link href="/anuncios" className="cursor-pointer gap-2">
                   <Megaphone className="size-4" />
                   Anúncios da empresa
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/landing-pages" className="cursor-pointer gap-2">
+                  <LayoutTemplate className="size-4" />
+                  Landing Pages
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

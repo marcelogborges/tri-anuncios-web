@@ -11,6 +11,7 @@ const MIN_CARDS = 2
 const MAX_CARDS = 10
 
 type CardDraft = {
+  id: string
   file: File | null
   previewUrl: string | null
   fileName: string
@@ -26,10 +27,15 @@ type Props = {
   onLiveChange?: (cards: Array<{ imageUrl: string; headline?: string }>) => void
 }
 
-const emptyCard = (): CardDraft => ({ file: null, previewUrl: null, fileName: "", headline: "", link: "" })
+let cardIdSeq = 0
+
+const nextCardId = () => `card-${cardIdSeq++}`
+
+const emptyCard = (): CardDraft => ({ id: nextCardId(), file: null, previewUrl: null, fileName: "", headline: "", link: "" })
 
 const fromInitial = (initial: CarouselCardData[]): CardDraft[] =>
   initial.map((c) => ({
+    id: nextCardId(),
     file: null,
     previewUrl: c.previewUrl,
     fileName: c.fileName,
@@ -121,7 +127,7 @@ export const AdCarouselUpload = ({ initialValue, onComplete, onLiveChange }: Pro
 
       <div className="flex flex-col gap-4">
         {cards.map((card, index) => (
-          <div key={index} className="rounded-lg border border-border bg-card p-4">
+          <div key={card.id} className="rounded-lg border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-label-caps font-semibold text-muted-foreground">CARTÃO {index + 1}</span>
               {cards.length > MIN_CARDS && (

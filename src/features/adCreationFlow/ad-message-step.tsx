@@ -27,12 +27,6 @@ const SUGGESTIONS = [
   "Produto natural, qualidade garantida. Peça já e receba em casa.",
 ]
 
-const ANGLE_LABELS: Record<GeneratedCopyVariation["angle"], string> = {
-  dor: "Dor",
-  resultado: "Resultado",
-  oferta: "Oferta",
-}
-
 const ASSIST_FIELDS: Array<{ key: keyof CopyInputs; label: string; placeholder: string }> = [
   {
     key: "hook",
@@ -70,6 +64,8 @@ export const AdMessageStep = ({
 }: Props) => {
   const [mode, setMode] = useState<Mode>("manual")
   const [message, setMessage] = useState(initialValue ?? "")
+  const [briefing, setBriefing] = useState("")
+  const [showDetails, setShowDetails] = useState(true)
   const [assistInputs, setAssistInputs] = useState<CopyInputs>({})
   const [variations, setVariations] = useState<GeneratedCopyVariation[]>([])
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
@@ -86,7 +82,7 @@ export const AdMessageStep = ({
 
   const filledCount = Object.values(assistInputs).filter((v) => v && v.trim().length > 0).length
 
-  const canGenerate = filledCount >= 3
+  const canGenerate = briefing.trim().length >= 10 || filledCount >= 3
 
   const handleGenerate = async () => {
     setAssistStatus("loading")
@@ -95,6 +91,7 @@ export const AdMessageStep = ({
     try {
       const result = await generateCopy({
         ...assistInputs,
+        briefing: briefing.trim() || undefined,
         name: adName,
         product_service: adProductService,
       })
@@ -134,7 +131,7 @@ export const AdMessageStep = ({
   return (
     <div className="mx-auto w-full max-w-xl px-8 py-8">
       <StepHeader
-        eyebrow="PASSO 3 · MENSAGEM"
+        eyebrow="PASSO 2 · MENSAGEM"
         title="Qual é a mensagem do seu anúncio?"
         subtitle="Escreva manualmente ou deixe a IA te ajudar a criar um texto de alta conversão."
       />
@@ -204,20 +201,48 @@ export const AdMessageStep = ({
         <div className="flex flex-col gap-6">
           {isIdle && (
             <div className="flex flex-col gap-4">
-              {ASSIST_FIELDS.map(({ key, label, placeholder }) => (
-                <div key={key} className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-foreground">{label}</label>
-                  <Input
-                    value={assistInputs[key] ?? ""}
-                    onChange={(e) => handleFieldChange(key, e.target.value)}
-                    placeholder={placeholder}
-                    className="rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--primary-soft)] focus-visible:border-primary"
-                  />
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="adBriefing" className="text-sm font-semibold text-foreground">
+                  Descreva o anúncio que você quer
+                </label>
+                <Textarea
+                  id="adBriefing"
+                  value={briefing}
+                  onChange={(e) => setBriefing(e.target.value)}
+                  placeholder="Ex: Quero anunciar minha barbearia no centro. Público masculino, 20 a 40 anos. Oferta: corte + barba por R$ 60 na primeira visita. Quero que agendem pelo WhatsApp."
+                  className="min-h-[120px] resize-none rounded-xl focus-visible:ring-0 focus-visible:shadow-[0_0_0_3px_var(--primary-soft)] focus-visible:border-primary"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Conte o que você anuncia, para quem e qual é a oferta. A IA cria o resto.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDetails((v) => !v)}
+                className="self-start text-xs font-semibold text-primary underline hover:no-underline"
+              >
+                {showDetails ? "Ocultar detalhes" : "Quer detalhar mais? (opcional)"}
+              </button>
+              {showDetails && (
+                <div className="flex flex-col gap-4">
+                  {ASSIST_FIELDS.map(({ key, label, placeholder }) => (
+                    <div key={key} className="flex flex-col gap-1.5">
+                      <label className="text-sm font-semibold text-foreground">{label}</label>
+                      <Input
+                        value={assistInputs[key] ?? ""}
+                        onChange={(e) => handleFieldChange(key, e.target.value)}
+                        placeholder={placeholder}
+                        className="rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--primary-soft)] focus-visible:border-primary"
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-              <p className="text-xs text-muted-foreground">
-                {filledCount}/5 respondidos — preencha pelo menos 3 para gerar
-              </p>
+              )}
+              {!canGenerate && (
+                <p className="text-xs text-muted-foreground">
+                  Escreva uma breve descrição acima (ou preencha pelo menos 3 detalhes) para gerar.
+                </p>
+              )}
               {assistStatus === "error" && (
                 <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
                   <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
@@ -258,9 +283,11 @@ export const AdMessageStep = ({
                   className="cursor-pointer rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50"
                 >
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {ANGLE_LABELS[v.angle]}
+                    Opção {i + 1}
                   </p>
-                  <p className="mt-1 line-clamp-3 text-sm text-foreground">{v.text}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground">
+                    {v.text}
+                  </p>
                   <button
                     type="button"
                     className="mt-2 text-xs text-primary underline hover:no-underline"
@@ -286,7 +313,7 @@ export const AdMessageStep = ({
                     Edite se quiser ajustar
                   </label>
                   <span className="text-xs tabular-nums text-muted-foreground">
-                    {message.length} / 150
+                    {message.length} caracteres
                   </span>
                 </div>
                 <Textarea

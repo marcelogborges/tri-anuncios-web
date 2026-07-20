@@ -20,6 +20,9 @@ export const OBJECTIVE_OPTIONS = [
     description: "Direcione as pessoas para o seu site ou landing page",
     icon: Globe,
   },
+  // WhatsApp/CTWA está fora do escopo inicial: o back publica lead_generation como
+  // cliques no link (o anúncio leva ao wa.me como um link comum). Será expandido para
+  // CONVERSATIONS + destination WHATSAPP quando a page tiver WhatsApp vinculado.
   {
     value: "lead_generation",
     label: "Mensagens no WhatsApp",
@@ -27,14 +30,6 @@ export const OBJECTIVE_OPTIONS = [
     icon: MessageCircle,
   },
 ] as const
-
-export const SOCIAL_CLASS_LABELS: Record<string, string> = Object.fromEntries(
-  SOCIAL_CLASS_OPTIONS.map((o) => [o.value, o.label])
-)
-
-export const GENDER_LABELS: Record<string, string> = Object.fromEntries(
-  GENDER_OPTIONS.map((o) => [o.value, o.label])
-)
 
 export const OBJECTIVE_LABELS: Record<string, string> = Object.fromEntries(
   OBJECTIVE_OPTIONS.map((o) => [o.value, o.label])

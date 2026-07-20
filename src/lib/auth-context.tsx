@@ -5,14 +5,17 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
 import {
   type AuthUser,
   type SignInPayload,
+  type SignUpPayload,
   signIn as apiSignIn,
   signOut as apiSignOut,
+  signUp as apiSignUp,
   getMe,
 } from "@/api/auth"
 import { getToken, removeToken } from "@/lib/api"
@@ -22,6 +25,7 @@ type AuthState = {
   isLoading: boolean
   isAuthenticated: boolean
   signIn: (payload: SignInPayload) => Promise<void>
+  signUp: (payload: SignUpPayload) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -38,18 +42,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false)
       return
     }
-
-    getMe()
-      .then(setUser)
-      .catch(() => {
+    const loadMe = async () => {
+      try {
+        setUser(await getMe())
+      } catch {
         removeToken()
-      })
-      .finally(() => setIsLoading(false))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadMe()
   }, [])
 
   const signIn = useCallback(
     async (payload: SignInPayload) => {
       const authUser = await apiSignIn(payload)
+      setUser(authUser)
+      router.push("/")
+    },
+    [router]
+  )
+
+  const signUp = useCallback(
+    async (payload: SignUpPayload) => {
+      const authUser = await apiSignUp(payload)
       setUser(authUser)
       router.push("/")
     },
@@ -62,19 +78,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push("/login")
   }, [router])
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        signIn,
-        signOut,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthState>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      signIn,
+      signUp,
+      signOut,
+    }),
+    [user, isLoading, signIn, signUp, signOut]
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = (): AuthState => {

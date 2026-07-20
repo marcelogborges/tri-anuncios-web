@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
 import type { GeoLocationData } from "@/features/adCreationFlow/geo-location-step"
@@ -6,6 +6,15 @@ import { clearAdImageFiles } from "@/features/adCreationFlow/ad-image-store"
 
 const STORAGE_KEY = "tri-anuncios:ad-creation-flow"
 const TTL_MS = 30 * 60 * 1000
+const MAX_STEP = 6
+
+// ?step=<n> deep-links straight to a step (e.g. returning from the landing
+// page editor). Applied synchronously at hydration so no effect can race it.
+const applyStepParam = (state: AdCreationFlowState): AdCreationFlowState => {
+  const step = Number(new URLSearchParams(window.location.search).get("step"))
+  if (Number.isInteger(step) && step >= 1 && step <= MAX_STEP) return { ...state, step }
+  return state
+}
 
 export type CarouselCardData = {
   fileName: string
@@ -79,12 +88,37 @@ export const clearAdCreationFlow = () => {
   clearAdImageFiles()
 }
 
+// Writes the landing page selection straight into the persisted flow state.
+// Called by the landing page editor right before navigating back, so the
+// objective step hydrates already selected — no async fetch race on return.
+export const injectAdFlowLandingPage = (page: {
+  id: number
+  name: string
+  status: "draft" | "published" | "archived"
+  public_url: string
+}) => {
+  if (typeof window === "undefined") return
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    parsed.optimizationGoal = {
+      objective: "link_clicks",
+      link: page.public_url,
+      landingPage: { id: page.id, name: page.name, status: page.status, public_url: page.public_url },
+    }
+    parsed.savedAt = Date.now()
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
+  } catch {
+    // storage unavailable — the ?lp= fallback on the flow page still applies
+  }
+}
+
 export const useAdCreationFlow = () => {
   const [state, setState] = useState<AdCreationFlowState>(DEFAULT_STATE)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    setState(load())
+    setState(applyStepParam(load()))
     setHydrated(true)
   }, [])
 
@@ -101,5 +135,8 @@ export const useAdCreationFlow = () => {
     setState({ ...DEFAULT_STATE, step: 1 })
   }, [])
 
-  return { ...state, hydrated, update, clear: clearAdCreationFlow, reset }
+  return useMemo(
+    () => ({ ...state, hydrated, update, clear: clearAdCreationFlow, reset }),
+    [state, hydrated, update, reset]
+  )
 }

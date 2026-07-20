@@ -1,16 +1,48 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { RefreshCw, MousePointerClick, CreditCard, ImageIcon } from "lucide-react"
+import {
+  RefreshCw,
+  MousePointerClick,
+  CreditCard,
+  ImageIcon,
+  Users,
+  Repeat,
+  Link2,
+  Percent,
+  Coins,
+  BarChart3,
+  CalendarRange,
+  ChevronDown,
+  Check,
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type { DateRange } from "react-day-picker"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { formatDayMonth, toIsoDateValue } from "@/lib/format"
 import type { AdRequest } from "@/api/ad-request"
-import type { DailyInsightsEntry, InsightsData, PlatformPublicationInsights } from "@/api/platform-publication"
-import { getPlatformPublicationDailyInsights, getPlatformPublicationInsights } from "@/api/platform-publication"
-import type { DatePreset } from "./types"
+import type {
+  BreakdownDimension,
+  BreakdownRow,
+  DailyInsightsEntry,
+  InsightsData,
+  PlatformPublicationInsights,
+} from "@/api/platform-publication"
+import {
+  getPlatformPublicationBreakdownInsights,
+  getPlatformPublicationDailyInsights,
+  getPlatformPublicationInsights,
+} from "@/api/platform-publication"
+import type { DatePreset, PeriodSelection } from "./types"
 import { DATE_PRESETS, STATUS_CONFIG, PLATFORM_LABELS, PLATFORM_ICONS, ALL_PLATFORMS } from "./constants"
-import { formatBR, formatBRL, isEmptyInsights } from "./formatters"
+import { formatBR, formatBRL, formatDecimalBR, formatPercentBR, formatShortDate, isEmptyInsights } from "./formatters"
 import { Breadcrumb } from "./components/breadcrumb"
 import { PulseDot } from "./components/pulse-dot"
 import { DailyChart } from "./components/daily-chart"
@@ -19,13 +51,27 @@ import { InsightsSkeleton } from "./components/insights-skeleton"
 import { InsightsEmptyState } from "./components/insights-empty-state"
 import { KpiCard } from "./components/kpi-card"
 import { KpiHero } from "./components/kpi-hero"
+import { CollapsibleSection } from "./components/collapsible-section"
+import { EngagementSection } from "./components/engagement-section"
+import { VideoRetention } from "./components/video-retention"
+import { BreakdownAgeGender } from "./components/breakdown-age-gender"
+import { BreakdownPlatform } from "./components/breakdown-platform"
+import { BreakdownRegion } from "./components/breakdown-region"
+
+type BreakdownState = Partial<Record<BreakdownDimension, BreakdownRow[]>>
+
+const BREAKDOWN_DIMENSIONS: BreakdownDimension[] = ["age_gender", "platform", "region"]
 
 type Props = { adRequest: AdRequest }
 
 export function AdStatistics({ adRequest }: Props) {
-  const [datePreset, setDatePreset] = useState<DatePreset>("last_7d")
+  const [period, setPeriod] = useState<PeriodSelection>({ preset: "last_7d" })
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerView, setPickerView] = useState<"presets" | "custom">("presets")
+  const [customRange, setCustomRange] = useState<DateRange | undefined>()
   const [insights, setInsights] = useState<PlatformPublicationInsights | null>(null)
   const [dailyInsights, setDailyInsights] = useState<DailyInsightsEntry[] | null>(null)
+  const [breakdowns, setBreakdowns] = useState<BreakdownState>({})
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,38 +79,74 @@ export function AdStatistics({ adRequest }: Props) {
   const statusConfig = STATUS_CONFIG[adRequest.status] ?? { label: adRequest.status, variant: "outline" as const }
   const imageUrl = adRequest.base_ad_creative.feed_image_url ?? adRequest.base_ad_creative.story_image_url
 
-  const loadInsights = async (preset: DatePreset) => {
+  const loadInsights = async (selection: PeriodSelection) => {
     if (!metaPublication) return
 
     setIsLoading(true)
     setError(null)
 
+    const preset = selection.preset === "custom" ? undefined : selection.preset
+    const range =
+      selection.preset === "custom" ? { since: selection.since, until: selection.until } : undefined
+
     try {
-      const aggResult = await getPlatformPublicationInsights(adRequest.id, metaPublication.id, preset)
+      const aggResult = await getPlatformPublicationInsights(adRequest.id, metaPublication.id, preset, range)
       setInsights(aggResult)
     } catch {
       setError("Não foi possível carregar as estatísticas. Tente novamente.")
     }
 
-    try {
-      const dailyResult = await getPlatformPublicationDailyInsights(adRequest.id, metaPublication.id, preset, "2026-03-27")
-      setDailyInsights(dailyResult)
-    } catch {
-      setDailyInsights(null)
-    }
+    const dailyPeriod = preset === "maximum" ? "month" : "week"
+    const [daily, ...breakdownResults] = await Promise.allSettled([
+      getPlatformPublicationDailyInsights(
+        adRequest.id, metaPublication.id, range ? undefined : dailyPeriod, undefined, range
+      ),
+      ...BREAKDOWN_DIMENSIONS.map((dimension) =>
+        getPlatformPublicationBreakdownInsights(adRequest.id, metaPublication.id, dimension, preset, range)
+      ),
+    ])
+
+    setDailyInsights(daily.status === "fulfilled" ? (daily.value as DailyInsightsEntry[]) : null)
+    setBreakdowns(
+      Object.fromEntries(
+        BREAKDOWN_DIMENSIONS.map((dimension, i) => {
+          const result = breakdownResults[i]
+          return [dimension, result.status === "fulfilled" ? (result.value as BreakdownRow[]) : []]
+        })
+      )
+    )
 
     setIsLoading(false)
   }
 
   useEffect(() => {
-    loadInsights("last_7d")
+    loadInsights({ preset: "last_7d" })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handlePresetChange = (preset: DatePreset) => {
-    setDatePreset(preset)
-    loadInsights(preset)
+    setPeriod({ preset })
+    loadInsights({ preset })
   }
+
+  const customRangeValid = Boolean(customRange?.from && customRange?.to)
+
+  const handleApplyCustomRange = () => {
+    if (!customRange?.from || !customRange?.to) return
+    const selection: PeriodSelection = {
+      preset: "custom",
+      since: toIsoDateValue(customRange.from),
+      until: toIsoDateValue(customRange.to),
+    }
+    setPeriod(selection)
+    setPickerOpen(false)
+    loadInsights(selection)
+  }
+
+  const periodLabel =
+    period.preset === "custom"
+      ? `${formatShortDate(period.since)} – ${formatShortDate(period.until)}`
+      : DATE_PRESETS.find(({ key }) => key === period.preset)?.label ?? ""
 
   const insightsData =
     insights?.data && !isEmptyInsights(insights.data) ? (insights.data as InsightsData) : null
@@ -113,7 +195,7 @@ export function AdStatistics({ adRequest }: Props) {
             variant="outline"
             size="sm"
             className="rounded-full"
-            onClick={() => loadInsights(datePreset)}
+            onClick={() => loadInsights(period)}
             disabled={isLoading}
           >
             <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
@@ -145,22 +227,77 @@ export function AdStatistics({ adRequest }: Props) {
             </button>
           ))}
         </div>
-        <div className="inline-flex bg-card border rounded-full p-1 gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {DATE_PRESETS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => handlePresetChange(key)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all shrink-0 select-none",
-                datePreset === key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <Popover
+          open={pickerOpen}
+          onOpenChange={(open) => {
+            setPickerOpen(open)
+            if (open) setPickerView("presets")
+          }}
+        >
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="rounded-full h-10 px-4 gap-2 font-semibold text-[13px] shrink-0">
+              <CalendarRange className="size-4 text-primary" />
+              {periodLabel}
+              <ChevronDown className="size-4 text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-auto p-2">
+            {pickerView === "presets" ? (
+              <div className="flex min-w-44 flex-col">
+                {DATE_PRESETS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setPickerOpen(false)
+                      handlePresetChange(key)
+                    }}
+                    className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                  >
+                    {label}
+                    {period.preset === key && <Check className="size-4 text-primary" />}
+                  </button>
+                ))}
+                <div className="my-1 h-px bg-border" />
+                <button
+                  type="button"
+                  onClick={() => setPickerView("custom")}
+                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                >
+                  Personalizado…
+                  {period.preset === "custom" && <Check className="size-4 text-primary" />}
+                </button>
+              </div>
+            ) : (
+              <div className="p-1">
+                <Calendar
+                  mode="range"
+                  selected={customRange}
+                  onSelect={(range) => setCustomRange(range)}
+                  defaultMonth={customRange?.from}
+                  disabled={{ after: new Date() }}
+                />
+                <div className="mt-2 flex items-center justify-between gap-3 border-t border-border pt-3">
+                  <span className="text-body-sm text-muted-foreground">
+                    {customRange?.from && customRange?.to
+                      ? `${formatDayMonth(customRange.from)} – ${formatDayMonth(customRange.to)}`
+                      : customRange?.from
+                        ? "Escolha a data final"
+                        : "Escolha a data inicial"}
+                  </span>
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    disabled={!customRangeValid || isLoading}
+                    onClick={handleApplyCustomRange}
+                  >
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
 
       {error && (
@@ -190,13 +327,65 @@ export function AdStatistics({ adRequest }: Props) {
           )}
           {insightsData && (
             <>
-              <section className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 max-[480px]:grid-cols-1">
+              <section className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 max-[640px]:gap-2.5">
                 <KpiHero impressions={insightsData.impressions} />
+                <KpiCard
+                  label="Alcance"
+                  icon={<Users className="size-3.5" />}
+                  value={formatBR(insightsData.reach)}
+                  sub="pessoas únicas"
+                />
+                <KpiCard
+                  label="Frequência"
+                  icon={<Repeat className="size-3.5" />}
+                  value={formatDecimalBR(insightsData.frequency, 1)}
+                  sub="exibições por pessoa"
+                />
                 <KpiCard
                   label="Cliques"
                   icon={<MousePointerClick className="size-3.5" />}
                   value={formatBR(insightsData.clicks)}
-                  sub="no link"
+                  sub="total de cliques"
+                />
+                <KpiCard
+                  label="Cliques únicos"
+                  icon={<MousePointerClick className="size-3.5" />}
+                  value={formatBR(insightsData.unique_clicks)}
+                  sub="pessoas que clicaram"
+                />
+                <KpiCard
+                  label="Cliques no link"
+                  icon={<Link2 className="size-3.5" />}
+                  value={formatBR(insightsData.inline_link_clicks)}
+                  sub="para seu site"
+                />
+                <KpiCard
+                  label="CTR"
+                  icon={<Percent className="size-3.5" />}
+                  value={formatPercentBR(insightsData.ctr)}
+                  sub="taxa de cliques"
+                  help="Taxa de cliques: de cada 100 pessoas que viram o anúncio, quantas clicaram. Quanto maior, mais o anúncio está chamando atenção."
+                />
+                <KpiCard
+                  label="CPC"
+                  icon={<Coins className="size-3.5" />}
+                  value={formatBRL(insightsData.cpc)}
+                  sub="custo por clique"
+                  help="Custo por clique: quanto você pagou, em média, por cada clique no anúncio. Quanto menor, melhor — significa que seu anúncio está atraindo cliques gastando pouco."
+                />
+                <KpiCard
+                  label="Custo por visita"
+                  icon={<Link2 className="size-3.5" />}
+                  value={formatBRL(insightsData.cost_per_inline_link_click)}
+                  sub="cliques para seu site"
+                  help="Quanto você pagou, em média, por cada pessoa que clicou no link e visitou seu site ou landing page. É o custo de trazer alguém até você."
+                />
+                <KpiCard
+                  label="CPM"
+                  icon={<BarChart3 className="size-3.5" />}
+                  value={formatBRL(insightsData.cpm)}
+                  sub="custo por mil impressões"
+                  help="Custo por mil impressões: quanto custa, em média, mostrar seu anúncio mil vezes. Ajuda a comparar se você está pagando caro ou barato para aparecer."
                 />
                 <KpiCard
                   label="Investimento"
@@ -209,27 +398,48 @@ export function AdStatistics({ adRequest }: Props) {
                   }
                 />
               </section>
-              <section className="mt-4 bg-card border rounded-xl shadow-ambient overflow-hidden">
-                <div className="px-6 py-5 border-b">
-                  <h3 className="font-quicksand text-[18px] font-bold">Evolução diária</h3>
-                  <p className="text-[13px] text-muted-foreground mt-0.5">Impressões e cliques por dia</p>
-                  <div className="flex gap-4 text-[13px] text-muted-foreground mt-2">
-                    <span className="flex items-center gap-1.5">
-                      <span className="size-2.5 rounded-full bg-primary inline-block" />
-                      Impressões
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="size-2.5 rounded-full bg-chart-1 inline-block" />
-                      Cliques
-                    </span>
-                  </div>
-                </div>
-                <div className="p-6">
+              <CollapsibleSection
+                className="mt-4"
+                title="Evolução diária"
+                subtitle="Métrica por dia no período selecionado"
+                collapsible={false}
+              >
+                <div className="p-6 max-[640px]:p-3">
                   {dailyInsights && dailyInsights.length > 1
                     ? <DailyChart data={dailyInsights} />
                     : <DailyChartEmpty />}
                 </div>
-              </section>
+              </CollapsibleSection>
+              <EngagementSection actions={insightsData.actions ?? {}} />
+              {insightsData.video && <VideoRetention video={insightsData.video} />}
+              {(breakdowns.age_gender?.length || breakdowns.platform?.length) ? (
+                <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_320px] lg:items-start">
+                  {breakdowns.age_gender && breakdowns.age_gender.length > 0 && (
+                    <CollapsibleSection
+                      title="Público por idade e gênero"
+                      subtitle="Impressões por faixa etária"
+                    >
+                      <div className="p-6 max-[640px]:p-3">
+                        <BreakdownAgeGender rows={breakdowns.age_gender} />
+                      </div>
+                    </CollapsibleSection>
+                  )}
+                  {breakdowns.platform && breakdowns.platform.length > 0 && (
+                    <CollapsibleSection title="Plataformas" subtitle="Onde seu anúncio apareceu">
+                      <div className="p-6 max-[640px]:p-3">
+                        <BreakdownPlatform rows={breakdowns.platform} />
+                      </div>
+                    </CollapsibleSection>
+                  )}
+                </section>
+              ) : null}
+              {breakdowns.region && breakdowns.region.length > 0 && (
+                <CollapsibleSection className="mt-4" title="Regiões" subtitle="Impressões por localização">
+                  <div className="p-6 max-[640px]:p-3">
+                    <BreakdownRegion rows={breakdowns.region} />
+                  </div>
+                </CollapsibleSection>
+              )}
             </>
           )}
         </div>

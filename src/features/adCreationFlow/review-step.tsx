@@ -34,16 +34,16 @@ const ReviewRow = ({
   step: number
   onEdit: (step: number) => void
 }) => (
-  <div className="grid grid-cols-[110px_1fr_auto] items-start gap-3 py-3 border-b border-border last:border-b-0">
+  <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[110px_1fr_auto] items-start gap-x-3 gap-y-1 py-3 border-b border-border last:border-b-0">
     <p className="text-label-caps text-muted-foreground pt-0.5">{label}</p>
-    <p className="text-body-sm break-words min-w-0 [overflow-wrap:anywhere]">{value}</p>
     <button
       type="button"
       onClick={() => onEdit(step)}
-      className="text-muted-foreground hover:text-foreground transition-colors p-1 shrink-0"
+      className="text-muted-foreground hover:text-foreground transition-colors p-1 shrink-0 sm:order-last"
     >
       <Pencil className="h-4 w-4" />
     </button>
+    <p className="text-body-sm break-words min-w-0 [overflow-wrap:anywhere] col-span-2 sm:col-span-1">{value}</p>
   </div>
 )
 
@@ -89,7 +89,7 @@ export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onP
         title="Tudo certo?"
         subtitle="Confira os dados antes de publicar."
       />
-      <div className="mb-6 rounded-lg border border-border bg-muted/40 py-6 lg:hidden">
+      <div className="mb-6 py-6 lg:hidden">
         <AdPreview {...preview} />
       </div>
       <div className="flex flex-col gap-4">
@@ -133,11 +133,19 @@ export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onP
               onEdit={onEdit}
             />
             <ReviewRow
-              label={optimizationGoal.objective === "lead_generation" ? "WhatsApp" : "Link"}
+              label={
+                optimizationGoal.objective === "lead_generation"
+                  ? "WhatsApp"
+                  : optimizationGoal.landingPage
+                    ? "Landing page"
+                    : "Link"
+              }
               value={
                 optimizationGoal.objective === "lead_generation"
                   ? formatPhoneDisplay(optimizationGoal.link)
-                  : optimizationGoal.link
+                  : optimizationGoal.landingPage
+                    ? `${optimizationGoal.landingPage.name} — ${optimizationGoal.link}`
+                    : optimizationGoal.link
               }
               step={5}
               onEdit={onEdit}

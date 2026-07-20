@@ -30,10 +30,7 @@ export function CreativeCard({ creative }: CreativeCardProps) {
   const cities: GeoCity[] = geo.cities ?? []
 
   return (
-    <div
-      className="rounded-2xl border border-border bg-card overflow-hidden"
-      style={{ position: "sticky", top: 24 }}
-    >
+    <div className="rounded-2xl border border-border bg-card overflow-hidden lg:sticky lg:top-6">
       {/* Media */}
       <div className="relative w-full aspect-square overflow-hidden bg-muted">
         {(creative.feed_image_url ?? creative.story_image_url) ? (

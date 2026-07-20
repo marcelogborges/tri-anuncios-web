@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { AuthGuard } from "@/lib/auth-guard"
@@ -34,6 +34,8 @@ import {
   clearCarouselFiles,
   carouselSlot,
 } from "@/features/adCreationFlow/ad-image-store"
+import { createLandingPage, getLandingPage } from "@/api/landing-pages"
+import type { LandingPageTemplate } from "@/features/landingPages/templates"
 import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
 import { getPlatformAccounts } from "@/api/platform-accounts"
 import { MetaConnectModal } from "@/features/myAds/meta-connect-modal"
@@ -65,6 +67,11 @@ const CriarAnuncioPage = () => {
   }>({})
   const flow = useAdCreationFlow()
 
+  // Fresh step for async callbacks — flow.step inside useCallback closures can
+  // be stale (created pre-hydration) and would clobber a restored/deep-linked step.
+  const stepRef = useRef(flow.step)
+  stepRef.current = flow.step
+
   const fetchOrganization = useCallback(async () => {
     if (!user) return
     try {
@@ -73,7 +80,7 @@ const CriarAnuncioPage = () => {
       const needsCompletion = !org.sector || !org.niche
       if (needsCompletion) {
         flow.update({ step: 0 })
-      } else if (flow.step === 0) {
+      } else if (stepRef.current === 0) {
         flow.update({ step: 1 })
       }
     } finally {
@@ -236,6 +243,51 @@ const CriarAnuncioPage = () => {
   const handleObjectiveComplete = (data: AdObjectiveData) => {
     flow.update({ optimizationGoal: data, step: 6 })
   }
+
+  // Creates the landing page picked in the objective step and jumps to the
+  // editor; flow state stays in localStorage so the user comes right back.
+  const handleCreateLandingPageForAd = async (name: string, template: LandingPageTemplate, slug: string) => {
+    const page = await createLandingPage({ name, slug, content: template.content })
+    flow.update({ optimizationGoal: { objective: "link_clicks", link: "", landingPage: null } })
+    router.push(`/landing-pages/editor/${page.id}?from=criar-anuncio&step=${flow.step}`)
+  }
+
+  const handleEditLandingPageForAd = (id: number) => {
+    router.push(`/landing-pages/editor/${id}?from=criar-anuncio&step=${flow.step}`)
+  }
+
+  // Deep-link handling on return to the flow:
+  // ?step=<n> jumps to that step; ?lp=<id> also reselects the landing page.
+  const returnParamsHandled = useRef(false)
+  useEffect(() => {
+    if (!flow.hydrated || returnParamsHandled.current) return
+    const params = new URLSearchParams(window.location.search)
+    const lpId = Number(params.get("lp"))
+    const stepParam = Number(params.get("step"))
+    const targetStep =
+      Number.isInteger(stepParam) && stepParam >= 1 && stepParam <= TOTAL_STEPS ? stepParam : null
+    if (!lpId && targetStep === null) return
+    returnParamsHandled.current = true
+
+    if (!lpId) {
+      flow.update({ step: targetStep as number })
+      router.replace("/anuncios/criar")
+      return
+    }
+    getLandingPage(lpId).then((page) => {
+      flow.update({
+        step: targetStep ?? 5,
+        optimizationGoal: {
+          objective: "link_clicks",
+          link: page.public_url,
+          landingPage: { id: page.id, name: page.name, status: page.status, public_url: page.public_url },
+        },
+      })
+      setLivePreview((p) => ({ ...p, link: page.public_url }))
+      router.replace("/anuncios/criar")
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flow.hydrated])
 
   const handleEditStep = (step: number) => {
     flow.update({ step })
@@ -447,9 +499,13 @@ const CriarAnuncioPage = () => {
       case 5:
         return (
           <AdObjectiveStep
+            key={flow.optimizationGoal?.landingPage?.id ?? "no-lp"}
             initialValues={flow.optimizationGoal}
             onComplete={handleObjectiveComplete}
             onLiveChange={(link) => setLivePreview((p) => ({ ...p, link: link ?? undefined }))}
+            onCreateLandingPage={handleCreateLandingPageForAd}
+            onEditLandingPage={handleEditLandingPageForAd}
+            orgSlug={organization?.slug}
           />
         )
       default:

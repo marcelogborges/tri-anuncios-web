@@ -9,15 +9,16 @@ export const FinalCtaSection = () => {
         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 12% 20%, rgba(255,255,255,0.08) 0, transparent 40%), radial-gradient(circle at 88% 80%, rgba(255,255,255,0.06) 0, transparent 50%)" }} />
 
         <div className="relative z-10 max-w-[720px] mx-auto">
-          <h2 className="font-quicksand text-[clamp(2rem,3.4vw,2.75rem)] font-bold leading-[1.1] text-white mb-4 text-balance">
+          <h2 className="font-quicksand text-[clamp(1.625rem,3.4vw,2.75rem)] font-bold leading-[1.15] text-white mb-4 text-balance">
             Seu próximo cliente está a um anúncio de distância.
           </h2>
-          <p className="text-[1.125rem] text-white/[0.78] mb-8 leading-relaxed">
-            Comece em 5 minutos. Sem cartão de crédito até a publicação.
+          <p className="text-[clamp(1rem,1.6vw,1.125rem)] text-white/[0.78] mb-8 leading-relaxed">
+            Tudo por R$ 29,90/mês. Comece em 5 minutos, cancele quando quiser.
           </p>
-          <Button size="lg" className="rounded-full bg-white text-primary hover:bg-white/90" asChild>
+          <Button size="lg" className="rounded-full font-quicksand font-bold bg-white text-primary hover:bg-white/90" asChild>
             <Link href="/anuncios/criar">
-              Criar meu primeiro anúncio
+              <span className="max-[560px]:hidden">Criar meu primeiro anúncio</span>
+              <span className="min-[561px]:hidden">Criar anúncio</span>
               <ArrowRight className="size-4" />
             </Link>
           </Button>
