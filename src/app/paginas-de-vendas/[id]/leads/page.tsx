@@ -57,7 +57,7 @@ function LeadsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
-            <Link href="/landing-pages">
+            <Link href="/paginas-de-vendas">
               <ArrowLeft className="mr-1 h-4 w-4" /> Minhas páginas
             </Link>
           </Button>

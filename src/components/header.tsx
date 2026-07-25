@@ -81,13 +81,13 @@ export const Header = () => {
               <DropdownMenuItem asChild>
                 <Link href="/anuncios" className="cursor-pointer gap-2">
                   <Megaphone className="size-4" />
-                  Anúncios da empresa
+                  Anúncios
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/landing-pages" className="cursor-pointer gap-2">
+                <Link href="/paginas-de-vendas" className="cursor-pointer gap-2">
                   <LayoutTemplate className="size-4" />
-                  Landing Pages
+                  Páginas de vendas
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

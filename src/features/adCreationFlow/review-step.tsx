@@ -137,7 +137,7 @@ export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onP
                 optimizationGoal.objective === "lead_generation"
                   ? "WhatsApp"
                   : optimizationGoal.landingPage
-                    ? "Landing page"
+                    ? "Página de vendas"
                     : "Link"
               }
               value={

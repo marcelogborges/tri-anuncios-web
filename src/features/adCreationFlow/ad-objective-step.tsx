@@ -179,7 +179,7 @@ export const AdObjectiveStep = ({
                         data-testid="destination-landing-page"
                       >
                         <LayoutTemplate className="h-3.5 w-3.5" />
-                        Landing page
+                        Página de vendas
                       </button>
                     </div>
 
@@ -243,7 +243,7 @@ export const AdObjectiveStep = ({
                           data-testid="open-landing-page-picker"
                         >
                           <LayoutTemplate className="mr-1 h-4 w-4" />
-                          Escolher ou criar landing page
+                          Escolher ou criar página de vendas
                         </Button>
                       )
                     )}

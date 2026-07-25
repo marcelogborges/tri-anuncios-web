@@ -378,7 +378,7 @@ export function AdStatistics({ adRequest }: Props) {
                   icon={<Link2 className="size-3.5" />}
                   value={formatBRL(insightsData.cost_per_inline_link_click)}
                   sub="cliques para seu site"
-                  help="Quanto você pagou, em média, por cada pessoa que clicou no link e visitou seu site ou landing page. É o custo de trazer alguém até você."
+                  help="Quanto você pagou, em média, por cada pessoa que clicou no link e visitou seu site ou página de vendas. É o custo de trazer alguém até você."
                 />
                 <KpiCard
                   label="CPM"

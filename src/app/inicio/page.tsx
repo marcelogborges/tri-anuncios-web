@@ -16,24 +16,29 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 const InicioPage = () => {
   const { user } = useAuth()
-  const { adRequests, landingPages, accounts, summary, isLoading, error, refreshAccounts } =
-    useDashboardData()
+  const {
+    adRequests,
+    landingPages,
+    accounts,
+    summary,
+    isLoading,
+    isSummaryLoading,
+    error,
+    refreshAccounts,
+  } = useDashboardData()
 
   const firstName = user?.name?.split(" ")[0] ?? ""
   const initial = user?.name?.charAt(0).toUpperCase() ?? ""
 
   const skeletons = (
     <div className="flex flex-col gap-4">
-      <Skeleton className="h-24 rounded-xl" />
-      <Skeleton className="h-36 rounded-xl" />
       <Skeleton className="h-64 rounded-xl" />
+      <Skeleton className="h-36 rounded-xl" />
     </div>
   )
 
   const content = (
     <div className="flex flex-col gap-4 sm:gap-6">
-      <QuickActions />
-      {summary && <PerformanceSummaryCard summary={summary} />}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <RecentAdsCard adRequests={adRequests} />
         <RecentLandingPagesCard landingPages={landingPages} />
@@ -64,7 +69,11 @@ const InicioPage = () => {
             </Button>
           </section>
           {error && <p className="mb-6 text-sm text-destructive">{error}</p>}
-          {isLoading ? skeletons : content}
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <QuickActions />
+            <PerformanceSummaryCard summary={summary} isLoading={isSummaryLoading} />
+            {isLoading ? skeletons : content}
+          </div>
         </main>
       </Layout>
     </AuthGuard>

@@ -24,9 +24,9 @@ export const RecentLandingPagesCard = ({ landingPages }: RecentLandingPagesCardP
       <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
         <LayoutTemplate className="size-5 text-primary" />
       </div>
-      <p className="text-sm text-muted-foreground">Nenhuma landing page criada ainda.</p>
+      <p className="text-sm text-muted-foreground">Nenhuma página de vendas criada ainda.</p>
       <Button asChild variant="outline" className="rounded-full">
-        <Link href="/landing-pages">Criar landing page</Link>
+        <Link href="/paginas-de-vendas">Criar página de vendas</Link>
       </Button>
     </div>
   )
@@ -36,7 +36,7 @@ export const RecentLandingPagesCard = ({ landingPages }: RecentLandingPagesCardP
     return (
       <Link
         key={page.id}
-        href="/landing-pages"
+        href="/paginas-de-vendas"
         className="flex items-center gap-3 border-t px-6 py-3.5 transition-colors hover:bg-secondary/40 max-[480px]:px-4"
       >
         <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border bg-secondary/20">
@@ -66,10 +66,10 @@ export const RecentLandingPagesCard = ({ landingPages }: RecentLandingPagesCardP
     <section className="overflow-hidden rounded-xl border bg-card shadow-ambient">
       <div className="flex items-center justify-between px-6 py-4 max-[480px]:px-4">
         <h2 className="font-quicksand text-[17px] font-semibold text-foreground">
-          Landing pages
+          Páginas de vendas
         </h2>
         <Link
-          href="/landing-pages"
+          href="/paginas-de-vendas"
           className="flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline"
         >
           Ver todas

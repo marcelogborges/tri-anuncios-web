@@ -249,11 +249,11 @@ const CriarAnuncioPage = () => {
   const handleCreateLandingPageForAd = async (name: string, template: LandingPageTemplate, slug: string) => {
     const page = await createLandingPage({ name, slug, content: template.content })
     flow.update({ optimizationGoal: { objective: "link_clicks", link: "", landingPage: null } })
-    router.push(`/landing-pages/editor/${page.id}?from=criar-anuncio&step=${flow.step}`)
+    router.push(`/paginas-de-vendas/editor/${page.id}?from=criar-anuncio&step=${flow.step}`)
   }
 
   const handleEditLandingPageForAd = (id: number) => {
-    router.push(`/landing-pages/editor/${id}?from=criar-anuncio&step=${flow.step}`)
+    router.push(`/paginas-de-vendas/editor/${id}?from=criar-anuncio&step=${flow.step}`)
   }
 
   // Deep-link handling on return to the flow:

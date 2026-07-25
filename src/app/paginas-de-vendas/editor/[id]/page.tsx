@@ -164,7 +164,7 @@ function LandingPageEditor() {
     <div className="flex h-screen flex-col">
       <header className="flex h-12 shrink-0 items-center gap-3 max-lg:gap-1.5 border-b bg-card px-4 max-lg:px-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href={fromAdCreation ? adReturnUrl() : "/landing-pages"}>
+          <Link href={fromAdCreation ? adReturnUrl() : "/paginas-de-vendas"}>
             <ArrowLeft className="h-4 w-4 lg:mr-1" />
             <span className="max-lg:hidden">{fromAdCreation ? "Voltar ao anúncio" : "Minhas páginas"}</span>
           </Link>

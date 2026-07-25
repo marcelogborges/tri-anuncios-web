@@ -40,7 +40,7 @@ export function LandingPagePickerDialog({ open, onOpenChange, onSelect, onCreate
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Escolher landing page</DialogTitle>
+          <DialogTitle>Escolher página de vendas</DialogTitle>
           <DialogDescription>
             O anúncio vai levar as pessoas para essa página.
           </DialogDescription>
@@ -50,7 +50,7 @@ export function LandingPagePickerDialog({ open, onOpenChange, onSelect, onCreate
           <p className="py-6 text-center text-sm text-muted-foreground">Carregando suas páginas...</p>
         ) : pages.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            Você ainda não tem nenhuma landing page. Crie a primeira agora — leva poucos minutos.
+            Você ainda não tem nenhuma página de vendas. Crie a primeira agora — leva poucos minutos.
           </p>
         ) : (
           <div className="flex flex-col gap-2" data-testid="landing-page-list">
@@ -82,7 +82,7 @@ export function LandingPagePickerDialog({ open, onOpenChange, onSelect, onCreate
 
         <Button variant="outline" className="rounded-full" onClick={onCreateNew} data-testid="picker-create-new">
           <Plus className="mr-1 h-4 w-4" />
-          Criar nova landing page
+          Criar nova página de vendas
         </Button>
       </DialogContent>
     </Dialog>

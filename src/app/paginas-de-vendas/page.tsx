@@ -62,7 +62,7 @@ const LandingPagesPage = () => {
 
   const handleCreate = async (name: string, template: LandingPageTemplate, slug: string) => {
     const page = await createLandingPage({ name, slug, content: template.content })
-    router.push(`/landing-pages/editor/${page.id}`)
+    router.push(`/paginas-de-vendas/editor/${page.id}`)
   }
 
   const togglePublish = async (page: LandingPage) => {
@@ -91,7 +91,7 @@ const LandingPagesPage = () => {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-title-1">Landing Pages</h1>
+          <h1 className="text-title-1">Páginas de vendas</h1>
           <p className="text-body-md text-muted-foreground">
             Crie páginas de destino para seus anúncios e receba leads direto na plataforma.
           </p>
@@ -112,7 +112,7 @@ const LandingPagesPage = () => {
           <LayoutIcon className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
           <p className="text-body-lg font-medium">Nenhuma página ainda</p>
           <p className="text-body-sm text-muted-foreground">
-            Crie sua primeira landing page e conecte-a aos seus anúncios.
+            Crie sua primeira página de vendas e conecte-a aos seus anúncios.
           </p>
         </div>
       ) : (
@@ -135,7 +135,7 @@ const LandingPagesPage = () => {
                     <Eye className="h-4 w-4" /> {page.views_count} visitas
                   </span>
                   <Link
-                    href={`/landing-pages/${page.id}/leads`}
+                    href={`/paginas-de-vendas/${page.id}/leads`}
                     className="flex items-center gap-1 hover:text-foreground"
                   >
                     <Users className="h-4 w-4" /> {page.leads_count} leads
@@ -143,7 +143,7 @@ const LandingPagesPage = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" asChild>
-                    <Link href={`/landing-pages/editor/${page.id}`}>
+                    <Link href={`/paginas-de-vendas/editor/${page.id}`}>
                       <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
                     </Link>
                   </Button>

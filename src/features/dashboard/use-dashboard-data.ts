@@ -16,27 +16,39 @@ export const useDashboardData = () => {
   const [accounts, setAccounts] = useState<PlatformAccount[]>([])
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const load = async () => {
+    const loadLists = async () => {
       try {
-        setAdRequests(await getAdRequests())
-        setLandingPages(await getLandingPages())
-        setAccounts(await getPlatformAccounts())
+        const [requests, pages, platformAccounts] = await Promise.all([
+          getAdRequests(),
+          getLandingPages(),
+          getPlatformAccounts(),
+        ])
+        setAdRequests(requests)
+        setLandingPages(pages)
+        setAccounts(platformAccounts)
       } catch {
         setError("Erro ao carregar seus dados. Tente recarregar a página.")
       } finally {
         setIsLoading(false)
       }
+    }
 
+    const loadSummary = async () => {
       try {
         setSummary(await getDashboardSummary())
       } catch {
         setSummary(null)
+      } finally {
+        setIsSummaryLoading(false)
       }
     }
-    load()
+
+    loadLists()
+    loadSummary()
   }, [])
 
   const refreshAccounts = useCallback(async () => {
@@ -47,5 +59,14 @@ export const useDashboardData = () => {
     }
   }, [])
 
-  return { adRequests, landingPages, accounts, summary, isLoading, error, refreshAccounts }
+  return {
+    adRequests,
+    landingPages,
+    accounts,
+    summary,
+    isLoading,
+    isSummaryLoading,
+    error,
+    refreshAccounts,
+  }
 }

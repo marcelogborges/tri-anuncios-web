@@ -91,7 +91,7 @@ export function TemplatePickerDialog({ open, onOpenChange, onCreate, orgSlug }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova landing page</DialogTitle>
+          <DialogTitle>Nova página de vendas</DialogTitle>
           <DialogDescription>
             Comece por um modelo pronto para o seu segmento — tudo é editável depois.
           </DialogDescription>

@@ -4,7 +4,7 @@ import { LayoutTemplate, Megaphone, Plus, Settings } from "lucide-react"
 const ACTIONS = [
   { href: "/anuncios/criar", label: "Criar anúncio", icon: Plus },
   { href: "/anuncios", label: "Meus anúncios", icon: Megaphone },
-  { href: "/landing-pages", label: "Landing pages", icon: LayoutTemplate },
+  { href: "/paginas-de-vendas", label: "Páginas de vendas", icon: LayoutTemplate },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ]
 
@@ -13,12 +13,13 @@ export const QuickActions = () => {
     <Link
       key={action.href}
       href={action.href}
-      className="group flex flex-col items-center justify-center gap-2 rounded-xl border bg-card p-4 shadow-ambient transition-all hover:shadow-lift hover:-translate-y-0.5"
+      className="group flex flex-col items-center justify-center gap-2 rounded-xl p-4 shadow-ambient transition-all hover:shadow-lift hover:-translate-y-0.5"
+      style={{ background: "linear-gradient(160deg, #014a32 0%, #006c49 100%)" }}
     >
-      <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <div className="flex size-9 items-center justify-center rounded-lg bg-white/15 text-white">
         <action.icon className="size-4" />
       </div>
-      <span className="text-[13px] font-semibold text-foreground text-center leading-tight">
+      <span className="text-[13px] font-semibold text-white text-center leading-tight">
         {action.label}
       </span>
     </Link>

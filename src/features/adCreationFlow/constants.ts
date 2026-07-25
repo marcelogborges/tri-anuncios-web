@@ -17,7 +17,7 @@ export const OBJECTIVE_OPTIONS = [
   {
     value: "link_clicks",
     label: "Cliques no Site",
-    description: "Direcione as pessoas para o seu site ou landing page",
+    description: "Direcione as pessoas para o seu site ou página de vendas",
     icon: Globe,
   },
   // WhatsApp/CTWA está fora do escopo inicial: o back publica lead_generation como
