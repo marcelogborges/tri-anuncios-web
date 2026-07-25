@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async (payload: SignInPayload) => {
       const authUser = await apiSignIn(payload)
       setUser(authUser)
-      router.push("/")
+      router.push("/inicio")
     },
     [router]
   )
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async (payload: SignUpPayload) => {
       const authUser = await apiSignUp(payload)
       setUser(authUser)
-      router.push("/")
+      router.push("/inicio")
     },
     [router]
   )

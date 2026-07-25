@@ -26,9 +26,25 @@ export type UserPayload = {
   organization_id?: number | null
 }
 
+export type UpdateUserPayload = {
+  name?: string
+  email?: string
+  password?: string
+  password_confirmation?: string
+}
+
 export async function createUser(payload: UserPayload) {
   return api<User>("/api/v1/users", {
     method: "POST",
+    body: {
+      user: payload,
+    },
+  })
+}
+
+export async function updateUser(id: number | string, payload: UpdateUserPayload) {
+  return api<User>(`/api/v1/users/${id}`, {
+    method: "PATCH",
     body: {
       user: payload,
     },

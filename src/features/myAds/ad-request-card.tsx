@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { AD_REQUEST_STATUS_INFO, type AdRequest } from "@/api/ad-request"
-import { getPlatformPublicationInsights, type InsightsData } from "@/api/platform-publication"
+import { useAdRequestInsights } from "@/features/myAds/use-ad-request-insights"
 import { formatDayMonthTime, timeAgo } from "@/lib/format"
 
 type AdRequestCardProps = {
@@ -26,25 +25,7 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
   const statusInfo = AD_REQUEST_STATUS_INFO[adRequest.status] ?? { label: adRequest.status, isLive: false }
   const pubCount = adRequest.platform_publications?.length ?? 0
 
-  const metaPublication = adRequest.platform_publications?.find(p => p.provider === "meta")
-  const [insights, setInsights] = useState<InsightsData | null>(null)
-
-  useEffect(() => {
-    if (!statusInfo.isLive || !metaPublication) return
-
-    const loadInsights = async () => {
-      try {
-        const res = await getPlatformPublicationInsights(adRequest.id, metaPublication.id)
-        const data = res.data
-
-        if (data && Object.keys(data).length > 0) {
-          setInsights(data as InsightsData)
-        }
-      } catch {}
-    }
-
-    loadInsights()
-  }, [metaPublication?.id, statusInfo.isLive])
+  const insights = useAdRequestInsights(adRequest)
 
   const isScheduled = adRequest.status === "scheduled"
 
@@ -84,7 +65,7 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
         <div className="relative w-full aspect-video overflow-hidden rounded-t-lg shrink-0">
           {imageContent}
         </div>
-        <div className="p-5 flex flex-col flex-1 gap-3">
+        <div className="p-4 flex flex-col flex-1 gap-2.5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-bold text-base line-clamp-2">{adName}</p>
             {statusPill}
@@ -92,13 +73,13 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
           <p className="text-sm text-muted-foreground">{metaText}</p>
           {!isDraft && !isScheduled && (
             <div className="grid grid-cols-2 overflow-hidden rounded-md border border-border bg-card">
-              <div className="border-r border-border bg-card p-3">
+              <div className="border-r border-border bg-card p-2.5">
                 <p className="text-label-caps uppercase text-muted-foreground">Impressões</p>
                 <p className="text-lg font-bold text-foreground">
                   {insights ? new Intl.NumberFormat("pt-BR").format(insights.impressions) : "—"}
                 </p>
               </div>
-              <div className="bg-card p-3">
+              <div className="bg-card p-2.5">
                 <p className="text-label-caps uppercase text-muted-foreground">Cliques</p>
                 <p className="text-lg font-bold text-foreground">
                   {insights ? new Intl.NumberFormat("pt-BR").format(insights.clicks) : "—"}
@@ -106,7 +87,7 @@ export const AdRequestCard = ({ adRequest, orgName }: AdRequestCardProps) => {
               </div>
             </div>
           )}
-          <div className="mt-auto border-t border-border pt-[14px]">
+          <div className="mt-auto border-t border-border pt-3">
             <Button className="w-full rounded-full">Ver detalhes</Button>
           </div>
         </div>

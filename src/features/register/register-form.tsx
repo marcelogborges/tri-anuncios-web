@@ -41,7 +41,7 @@ export const RegisterForm = () => {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.replace("/")
+      router.replace("/inicio")
     }
   }, [authLoading, isAuthenticated, router])
 

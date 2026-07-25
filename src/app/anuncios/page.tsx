@@ -2,20 +2,27 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Megaphone, Plus, Search } from "lucide-react"
+import { LayoutGrid, Megaphone, Search, TableProperties } from "lucide-react"
 import { AuthGuard } from "@/lib/auth-guard"
 import { useAuth } from "@/lib/auth-context"
 import { Layout } from "@/components/layout"
 import { getAdRequests } from "@/api/ad-request"
 import type { AdRequest } from "@/api/ad-request"
 import { AdRequestCard } from "@/features/myAds/ad-request-card"
+import { AdRequestTable } from "@/features/myAds/ad-request-table"
+import { AdRequestMobileList } from "@/features/myAds/ad-request-mobile-list"
 import { AdCreationCtaCard } from "@/features/myAds/ad-creation-cta-card"
+import { useIsMobile } from "@/lib/use-is-mobile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 type TabKey = "todos" | "ao-vivo" | "encerrados" | "rascunhos"
+
+type ViewMode = "cards" | "table"
+
+const VIEW_MODE_KEY = "anuncios_view_mode"
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "todos", label: "Todos" },
@@ -26,14 +33,22 @@ const TABS: { key: TabKey; label: string }[] = [
 
 const AnunciosPage = () => {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [adRequests, setAdRequests] = useState<AdRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>("todos")
 
   const [search, setSearch] = useState("")
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
 
   useEffect(() => {
+    const stored = localStorage.getItem(VIEW_MODE_KEY)
+
+    if (stored === "table" || stored === "cards") {
+      setViewMode(stored)
+    }
+
     const load = async () => {
       try {
         const data = await getAdRequests()
@@ -46,6 +61,11 @@ const AnunciosPage = () => {
     }
     load()
   }, [])
+
+  const changeViewMode = (mode: ViewMode) => {
+    setViewMode(mode)
+    localStorage.setItem(VIEW_MODE_KEY, mode)
+  }
 
   const orgName = user?.organization_name ?? ""
 
@@ -71,7 +91,7 @@ const AnunciosPage = () => {
       search === "" || ad.base_ad_creative?.name?.toLowerCase().includes(search.toLowerCase())
     )
 
-  const skeletons = [0, 1, 2].map(i => <Skeleton key={i} className="h-[420px] rounded-lg" />)
+  const skeletons = [0, 1, 2].map(i => <Skeleton key={i} className="h-[380px] rounded-lg" />)
 
   const emptyState = (
     <div className="col-span-full flex flex-col items-center justify-center gap-4 py-20 text-center">
@@ -98,23 +118,54 @@ const AnunciosPage = () => {
 
   const gridContent = isLoading ? skeletons : filtered.length === 0 ? emptyState : adCards
 
+  const viewToggle = (
+    <div className="flex shrink-0 gap-1 rounded-full bg-muted p-1">
+      <button
+        onClick={() => changeViewMode("cards")}
+        aria-label="Ver em cards"
+        className={cn(
+          "rounded-full p-2 transition-all",
+          viewMode === "cards"
+            ? "bg-card text-foreground shadow-[var(--shadow-ambient)]"
+            : "text-muted-foreground"
+        )}
+      >
+        <LayoutGrid className="size-4" />
+      </button>
+      <button
+        onClick={() => changeViewMode("table")}
+        aria-label="Ver em tabela"
+        className={cn(
+          "rounded-full p-2 transition-all",
+          viewMode === "table"
+            ? "bg-card text-foreground shadow-[var(--shadow-ambient)]"
+            : "text-muted-foreground"
+        )}
+      >
+        <TableProperties className="size-4" />
+      </button>
+    </div>
+  )
+
+  const tableContent = isLoading ? (
+    <Skeleton className="h-[320px] rounded-lg" />
+  ) : filtered.length === 0 ? (
+    emptyState
+  ) : isMobile ? (
+    <AdRequestMobileList adRequests={filtered} />
+  ) : (
+    <AdRequestTable adRequests={filtered} />
+  )
+
   return (
     <AuthGuard>
       <Layout>
         <main className="max-w-[1280px] mx-auto px-8 py-10">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
-            <div>
-              <h1 className="text-title-1 text-foreground">Meus anúncios</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {adRequests.length} anúncio{adRequests.length !== 1 ? "s" : ""} · {liveCount} ao vivo agora
-              </p>
-            </div>
-            <Button asChild className="rounded-full h-12 px-6 self-start sm:self-auto">
-              <Link href="/anuncios/criar">
-                <Plus className="mr-2 h-4 w-4" />
-                Criar anúncio
-              </Link>
-            </Button>
+          <div className="mb-8">
+            <h1 className="text-title-1 text-foreground">Meus anúncios</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {adRequests.length} anúncio{adRequests.length !== 1 ? "s" : ""} · {liveCount} ao vivo agora
+            </p>
           </div>
           {error && <p className="text-destructive mb-6">{error}</p>}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -142,20 +193,27 @@ const AnunciosPage = () => {
                 </button>
               ))}
             </div>
-            <div className="relative flex-1 min-w-[240px] max-w-[360px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar anúncios"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 rounded-full"
-              />
+            <div className="flex flex-1 items-center justify-end gap-2">
+              <div className="relative flex-1 min-w-[200px] max-w-[360px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar anúncios"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9 rounded-full"
+                />
+              </div>
+              {viewToggle}
             </div>
           </div>
-          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 360px), 1fr))" }}>
-            {gridContent}
-            {!isLoading && <AdCreationCtaCard />}
-          </div>
+          {viewMode === "cards" ? (
+            <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 330px))" }}>
+              {gridContent}
+              {!isLoading && filtered.length > 0 && <AdCreationCtaCard />}
+            </div>
+          ) : (
+            tableContent
+          )}
         </main>
       </Layout>
     </AuthGuard>

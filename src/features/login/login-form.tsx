@@ -25,7 +25,7 @@ export const LoginForm = () => {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.replace("/")
+      router.replace("/inicio")
     }
   }, [authLoading, isAuthenticated, router])
 

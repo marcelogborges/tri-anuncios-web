@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { LayoutTemplate, LogOut, Megaphone, Plus } from "lucide-react"
+import { Home, LayoutTemplate, LogOut, Megaphone, Plus, Settings } from "lucide-react"
 
 import { useAuth } from "@/lib/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -67,6 +67,12 @@ export const Header = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
+                <Link href="/inicio" className="cursor-pointer gap-2">
+                  <Home className="size-4" />
+                  Início
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link href="/anuncios/criar" className="cursor-pointer gap-2">
                   <Plus className="size-4" />
                   Criar Anúncio
@@ -82,6 +88,12 @@ export const Header = () => {
                 <Link href="/landing-pages" className="cursor-pointer gap-2">
                   <LayoutTemplate className="size-4" />
                   Landing Pages
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/configuracoes" className="cursor-pointer gap-2">
+                  <Settings className="size-4" />
+                  Configurações
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

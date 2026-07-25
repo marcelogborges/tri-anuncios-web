@@ -1,24 +1,9 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const MOBILE_QUERY = "(max-width: 639px)"
-
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const media = window.matchMedia(MOBILE_QUERY)
-    const update = () => setIsMobile(media.matches)
-    update()
-    media.addEventListener("change", update)
-    return () => media.removeEventListener("change", update)
-  }, [])
-
-  return isMobile
-}
+import { useIsMobile } from "@/lib/use-is-mobile"
 
 type Props = {
   title: string
