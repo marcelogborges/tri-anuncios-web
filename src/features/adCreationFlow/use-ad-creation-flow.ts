@@ -25,8 +25,8 @@ export type CarouselCardData = {
 }
 
 export type AdImageData =
-  | { type: "file"; feedFileName: string; feedPreviewUrl: string; storyFileName?: string; storyPreviewUrl?: string }
-  | { type: "generated"; dataUrl: string }
+  | { type: "file"; feedFileName?: string; feedPreviewUrl?: string; storyFileName?: string; storyPreviewUrl?: string }
+  | { type: "generated"; dataUrl: string; format?: "feed" | "story" }
   | { type: "video"; videoFileName: string; videoPreviewUrl: string; thumbFileName: string; thumbPreviewUrl: string }
   | { type: "carousel"; cards: CarouselCardData[] }
 
@@ -102,9 +102,10 @@ export const injectAdFlowLandingPage = (page: {
     const raw = localStorage.getItem(STORAGE_KEY)
     const parsed = raw ? JSON.parse(raw) : {}
     parsed.optimizationGoal = {
-      objective: "link_clicks",
+      objective: "landing_page_views",
       link: page.public_url,
       landingPage: { id: page.id, name: page.name, status: page.status, public_url: page.public_url },
+      callToAction: parsed.optimizationGoal?.callToAction ?? "LEARN_MORE",
     }
     parsed.savedAt = Date.now()
     localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))

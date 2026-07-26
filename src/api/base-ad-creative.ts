@@ -40,7 +40,6 @@ export type BaseAdCreative = {
   target_gender: string
   target_age_min: number | null
   target_age_max: number | null
-  target_social_classes: string[]
   geo_locations: Record<string, unknown>
   media_type: AdMediaType
   feed_image_url: string | null
@@ -118,6 +117,7 @@ export type GenerateImageInputs = {
   adName: string
   productService?: string
   style: "professional" | "vibrant" | "natural"
+  imageFormat?: "feed" | "story"
 }
 
 export const generateImage = async (inputs: GenerateImageInputs): Promise<string> => {
@@ -131,6 +131,7 @@ export const generateImage = async (inputs: GenerateImageInputs): Promise<string
         ad_name: inputs.adName,
         product_service: inputs.productService,
         style: inputs.style,
+        image_format: inputs.imageFormat,
       },
     }
   )

@@ -39,7 +39,6 @@ export type AdRequestBaseAdCreative = {
   target_gender: string
   target_age_min: number | null
   target_age_max: number | null
-  target_social_classes: string[]
   geo_locations: Record<string, unknown>
 }
 

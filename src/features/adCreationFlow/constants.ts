@@ -1,18 +1,5 @@
 import { Globe, MessageCircle } from "lucide-react"
 
-export const SOCIAL_CLASS_OPTIONS = [
-  { value: "class_a", label: "Classe A", detail: "R$ 20.000+" },
-  { value: "class_b", label: "Classe B", detail: "R$ 8.000 – R$ 20.000" },
-  { value: "class_c", label: "Classe C", detail: "R$ 3.000 – R$ 8.000" },
-  { value: "class_d", label: "Classe D", detail: "Até R$ 3.000" },
-] as const
-
-export const GENDER_OPTIONS = [
-  { value: "all", label: "Todos os públicos" },
-  { value: "male", label: "Masculino" },
-  { value: "female", label: "Feminino" },
-] as const
-
 export const OBJECTIVE_OPTIONS = [
   {
     value: "link_clicks",
@@ -20,17 +7,36 @@ export const OBJECTIVE_OPTIONS = [
     description: "Direcione as pessoas para o seu site ou página de vendas",
     icon: Globe,
   },
-  // WhatsApp/CTWA está fora do escopo inicial: o back publica lead_generation como
+  // WhatsApp/CTWA está fora do escopo inicial: o back publica whatsapp_messages como
   // cliques no link (o anúncio leva ao wa.me como um link comum). Será expandido para
   // CONVERSATIONS + destination WHATSAPP quando a page tiver WhatsApp vinculado.
   {
-    value: "lead_generation",
+    value: "whatsapp_messages",
     label: "Mensagens no WhatsApp",
     description: "Inicie conversas com clientes pelo WhatsApp",
     icon: MessageCircle,
   },
 ] as const
 
-export const OBJECTIVE_LABELS: Record<string, string> = Object.fromEntries(
-  OBJECTIVE_OPTIONS.map((o) => [o.value, o.label])
+export const OBJECTIVE_LABELS: Record<string, string> = {
+  ...Object.fromEntries(OBJECTIVE_OPTIONS.map((o) => [o.value, o.label])),
+  landing_page_views: "Cliques no Site",
+}
+
+export const CALL_TO_ACTION_OPTIONS = [
+  { value: "LEARN_MORE", label: "Saiba mais" },
+  { value: "SHOP_NOW", label: "Comprar agora" },
+  { value: "ORDER_NOW", label: "Pedir agora" },
+  { value: "CONTACT_US", label: "Fale conosco" },
+  { value: "BOOK_NOW", label: "Reservar" },
+  { value: "SIGN_UP", label: "Cadastre-se" },
+] as const
+
+export type CallToAction = (typeof CALL_TO_ACTION_OPTIONS)[number]["value"]
+
+export const CALL_TO_ACTION_LABELS: Record<string, string> = Object.fromEntries(
+  CALL_TO_ACTION_OPTIONS.map((o) => [o.value, o.label])
 )
+
+export const DEFAULT_CALL_TO_ACTION: CallToAction = "LEARN_MORE"
+export const WHATSAPP_CALL_TO_ACTION: CallToAction = "CONTACT_US"

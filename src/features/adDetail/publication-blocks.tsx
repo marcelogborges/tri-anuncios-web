@@ -12,6 +12,12 @@ import type { InsightsData } from "@/api/platform-publication"
 const fmt = (n: number) =>
   new Intl.NumberFormat("pt-BR").format(n)
 
+const fmtBRL = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
+
+const fmtPercent = (n: number) =>
+  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n)}%`
+
 const fmtDate = (iso: string) => {
   const d = new Date(iso)
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`
@@ -70,17 +76,25 @@ export function LivePublicationBlock({
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
-        {(["impressions", "clicks"] as const).map((key) => (
+        {[
+          { label: "Impressões", value: insights ? fmt(insights.impressions) : "—" },
+          { label: "Cliques", value: insights ? fmt(insights.clicks) : "—" },
+          { label: "CTR", value: insights ? fmtPercent(insights.ctr) : "—" },
+          { label: "CPC", value: insights ? fmtBRL(insights.cpc) : "—" },
+          ...(insights && insights.actions["landing_page_view"] !== undefined
+            ? [{ label: "Visitas à página", value: fmt(insights.actions["landing_page_view"]) }]
+            : []),
+        ].map((kpi) => (
           <div
-            key={key}
+            key={kpi.label}
             className="rounded-xl p-4"
             style={{ background: "rgba(255,255,255,0.10)" }}
           >
             <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>
-              {key === "impressions" ? "Impressões" : "Cliques"}
+              {kpi.label}
             </p>
             <p className="font-quicksand font-bold text-[2rem] leading-none text-white">
-              {insights ? fmt(insights[key]) : "—"}
+              {kpi.value}
             </p>
           </div>
         ))}

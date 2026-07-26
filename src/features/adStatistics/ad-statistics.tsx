@@ -380,6 +380,15 @@ export function AdStatistics({ adRequest }: Props) {
                   sub="cliques para seu site"
                   help="Quanto você pagou, em média, por cada pessoa que clicou no link e visitou seu site ou página de vendas. É o custo de trazer alguém até você."
                 />
+                {insightsData.actions["landing_page_view"] !== undefined && (
+                  <KpiCard
+                    label="Visitas à página"
+                    icon={<Link2 className="size-3.5" />}
+                    value={formatBR(insightsData.actions["landing_page_view"])}
+                    sub="páginas carregadas"
+                    help="Pessoas que clicaram no anúncio e esperaram a página carregar de verdade. É mais preciso que cliques no link: mostra quem realmente chegou até a sua página."
+                  />
+                )}
                 <KpiCard
                   label="CPM"
                   icon={<BarChart3 className="size-3.5" />}

@@ -3,7 +3,7 @@
 import { Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { AdCreationFlowState } from "@/features/adCreationFlow/use-ad-creation-flow"
-import { OBJECTIVE_LABELS } from "@/features/adCreationFlow/constants"
+import { CALL_TO_ACTION_LABELS, OBJECTIVE_LABELS } from "@/features/adCreationFlow/constants"
 import { StepHeader } from "@/features/adCreationFlow/step-header"
 import { AdPreview } from "@/features/adCreationFlow/ad-preview"
 import type { AdPreviewProps } from "@/features/adCreationFlow/ad-preview"
@@ -61,9 +61,10 @@ const mediaRows = (image: AdCreationFlowState["adImage"]): Array<{ label: string
 
   switch (image.type) {
     case "file": {
-      const rows = [{ label: "Imagem feed", value: `📎 ${image.feedFileName}` }]
-      if (image.storyFileName) rows.push({ label: "Imagem story", value: `📎 ${image.storyFileName}` })
-      return rows
+      const rows: Array<{ label: string; value: string }> = []
+      if (image.feedPreviewUrl) rows.push({ label: "Imagem feed", value: `📎 ${image.feedFileName ?? "Imagem enviada"}` })
+      if (image.storyPreviewUrl) rows.push({ label: "Imagem story", value: `📎 ${image.storyFileName ?? "Imagem enviada"}` })
+      return rows.length > 0 ? rows : [{ label: "Mídia", value: "—" }]
     }
     case "generated":
       return [{ label: "Imagem", value: "🖼 Imagem gerada por IA" }]
@@ -134,19 +135,25 @@ export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onP
             />
             <ReviewRow
               label={
-                optimizationGoal.objective === "lead_generation"
+                optimizationGoal.objective === "whatsapp_messages"
                   ? "WhatsApp"
                   : optimizationGoal.landingPage
                     ? "Página de vendas"
                     : "Link"
               }
               value={
-                optimizationGoal.objective === "lead_generation"
+                optimizationGoal.objective === "whatsapp_messages"
                   ? formatPhoneDisplay(optimizationGoal.link)
                   : optimizationGoal.landingPage
                     ? `${optimizationGoal.landingPage.name} — ${optimizationGoal.link}`
                     : optimizationGoal.link
               }
+              step={5}
+              onEdit={onEdit}
+            />
+            <ReviewRow
+              label="Botão"
+              value={CALL_TO_ACTION_LABELS[optimizationGoal.callToAction] ?? optimizationGoal.callToAction}
               step={5}
               onEdit={onEdit}
             />

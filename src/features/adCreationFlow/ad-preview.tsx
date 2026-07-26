@@ -17,6 +17,7 @@ export type AdPreviewProps = {
   carousel?: AdPreviewCarouselCard[]
   organizationName?: string
   link?: string | null
+  callToAction?: string
   className?: string
 }
 
@@ -66,7 +67,9 @@ const StoryFrame = ({
   videoUrl,
   caption,
   businessName,
+  ctaLabel,
 }: {
+  ctaLabel?: string
   imageUrl?: string
   videoUrl?: string
   caption?: string
@@ -141,7 +144,7 @@ const StoryFrame = ({
         </button>
       </div>
       <button type="button" style={{ width: "100%", background: "rgba(255,255,255,0.92)", border: "none", borderRadius: 8, padding: "7px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: IG_COLORS.text }}>Saiba mais</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: IG_COLORS.text }}>{ctaLabel ?? "Saiba mais"}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={IG_COLORS.text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6" />
         </svg>
@@ -220,6 +223,7 @@ const FeedFrame = ({
   name,
   businessName,
   link,
+  ctaLabel,
 }: {
   imageUrl?: string
   videoUrl?: string
@@ -228,6 +232,7 @@ const FeedFrame = ({
   name?: string
   businessName: string
   link?: string | null
+  ctaLabel?: string
 }) => {
   const { domain, cta } = getLinkInfo(link)
 
@@ -321,7 +326,7 @@ const FeedFrame = ({
           </small>
         </div>
         <button type="button" style={{ background: IG_COLORS.ctaButton, color: "#fff", border: "none", padding: "7px 14px", borderRadius: 8, fontWeight: 700, fontSize: "0.75rem", whiteSpace: "nowrap", cursor: "pointer", flexShrink: 0 }}>
-          {cta}
+          {ctaLabel ?? cta}
         </button>
       </div>
       {caption && (
@@ -336,7 +341,7 @@ const FeedFrame = ({
   )
 }
 
-export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl, carousel, organizationName = "Meu negócio", link, className }: AdPreviewProps) => {
+export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl, carousel, organizationName = "Meu negócio", link, callToAction, className }: AdPreviewProps) => {
   const [tab, setTab] = useState<Tab>("feed")
 
   return (
@@ -360,10 +365,11 @@ export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl
       </div>
       {tab === "story" ? (
         <StoryFrame
-          imageUrl={storyImageUrl ?? (carousel && carousel.length > 0 ? carousel[0].imageUrl : undefined)}
+          imageUrl={storyImageUrl}
           videoUrl={videoUrl}
           caption={message}
           businessName={organizationName}
+          ctaLabel={callToAction}
         />
       ) : (
         <FeedFrame
@@ -374,6 +380,7 @@ export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl
           name={name ?? undefined}
           businessName={organizationName}
           link={link}
+          ctaLabel={callToAction}
         />
       )}
       <p className="text-label-caps text-muted-foreground text-center max-lg:hidden">

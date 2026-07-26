@@ -1,20 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, Clapperboard, GalleryHorizontalEnd, ImageIcon, Sparkles } from "lucide-react"
+import { ChevronDown, Clapperboard, GalleryHorizontalEnd, ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { AdImageData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { StepHeader } from "@/features/adCreationFlow/step-header"
 import { CardOption } from "@/features/adCreationFlow/card-option"
 import { AdImageUpload } from "@/features/adCreationFlow/ad-image-upload"
-import { AdImageGenerate } from "@/features/adCreationFlow/ad-image-generate"
+// Geração por IA desabilitada por enquanto:
+// import { Sparkles } from "lucide-react"
+// import { AdImageGenerate } from "@/features/adCreationFlow/ad-image-generate"
 import { AdVideoUpload } from "@/features/adCreationFlow/ad-video-upload"
 import type { AdVideoFiles } from "@/features/adCreationFlow/ad-video-upload"
 import { AdCarouselUpload } from "@/features/adCreationFlow/ad-carousel-upload"
 import type { CarouselFiles } from "@/features/adCreationFlow/ad-carousel-upload"
 
 export type AdMediaKind = "image" | "video" | "carousel"
-type ImageMode = "upload" | "generate"
+// type ImageMode = "upload" | "generate"
 
 export type AdMediaFiles = {
   feed?: File | null
@@ -61,9 +63,9 @@ export const AdMediaStep = ({
 }: Props) => {
   const [kind, setKind] = useState<AdMediaKind>(kindFromInitial(initialValue))
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [imageMode, setImageMode] = useState<ImageMode>(
-    initialValue?.type === "generated" ? "generate" : "upload"
-  )
+  // const [imageMode, setImageMode] = useState<ImageMode>(
+  //   initialValue?.type === "generated" ? "generate" : "upload"
+  // )
 
   const handleKindChange = (next: AdMediaKind) => {
     setPickerOpen(false)
@@ -139,6 +141,8 @@ export const AdMediaStep = ({
         )}
       </div>
 
+      {/* Geração de imagem por IA desabilitada por enquanto — restaurar o toggle
+          upload/gerar e o branch <AdImageGenerate /> abaixo quando reativar.
       {kind === "image" && (
         <>
           <div className="mb-6 flex gap-1 rounded-full bg-muted p-1">
@@ -152,7 +156,7 @@ export const AdMediaStep = ({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Adicionar imagem pronta
+              Adicionar Imagem
             </button>
             <button
               type="button"
@@ -168,16 +172,17 @@ export const AdMediaStep = ({
               Gerar imagem
             </button>
           </div>
-          {imageMode === "upload" ? (
-            <AdImageUpload
-              initialValue={initialValue}
-              onComplete={(media, feedFile, storyFile) => onComplete(media, { feed: feedFile, story: storyFile })}
-              onLiveChange={(feedUrl, storyUrl) => onLiveChange?.({ feedUrl, storyUrl })}
-            />
-          ) : (
+          {imageMode === "generate" && (
             <AdImageGenerate
               initialValue={initialValue}
-              onComplete={(media, file) => onComplete(media, { feed: file, story: null })}
+              onComplete={(media, file) =>
+                onComplete(
+                  media,
+                  media.type === "generated" && media.format === "story"
+                    ? { feed: null, story: file }
+                    : { feed: file, story: null }
+                )
+              }
               onLiveChange={(feedUrl, storyUrl) => onLiveChange?.({ feedUrl, storyUrl })}
               adMessage={adMessage}
               adName={adName}
@@ -185,6 +190,14 @@ export const AdMediaStep = ({
             />
           )}
         </>
+      )}
+      */}
+      {kind === "image" && (
+        <AdImageUpload
+          initialValue={initialValue}
+          onComplete={(media, feedFile, storyFile) => onComplete(media, { feed: feedFile, story: storyFile })}
+          onLiveChange={(feedUrl, storyUrl) => onLiveChange?.({ feedUrl, storyUrl })}
+        />
       )}
 
       {kind === "video" && (

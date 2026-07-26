@@ -25,6 +25,7 @@ import type { GeoLocationData } from "@/features/adCreationFlow/geo-location-ste
 import { AdObjectiveStep } from "@/features/adCreationFlow/ad-objective-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
 import { ReviewStep } from "@/features/adCreationFlow/review-step"
+import { CALL_TO_ACTION_LABELS } from "@/features/adCreationFlow/constants"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
 import {
   saveAdImageFile,
@@ -64,6 +65,7 @@ const CriarAnuncioPage = () => {
     videoUrl?: string
     carousel?: Array<{ imageUrl: string; headline?: string }>
     link?: string
+    ctaLabel?: string
   }>({})
   const flow = useAdCreationFlow()
 
@@ -146,10 +148,10 @@ const CriarAnuncioPage = () => {
         setAdFeedImageFile(feed)
         setAdStoryImageFile(story)
 
-        if (adImage?.type === "file" && !feed) {
+        if (adImage?.type === "file" && !feed && !story) {
           flow.update({ adImage: null, step: Math.min(flow.step, 3) })
         } else if (adImage?.type === "file") {
-          const feedUrl = makeUrl(feed!)
+          const feedUrl = feed ? makeUrl(feed) : undefined
           const storyUrl = story ? makeUrl(story) : undefined
 
           setLivePreview((p) => ({ ...p, feedImageUrl: feedUrl, storyImageUrl: storyUrl }))
@@ -161,7 +163,11 @@ const CriarAnuncioPage = () => {
             },
           })
         } else if (adImage?.type === "generated") {
-          setLivePreview((p) => ({ ...p, feedImageUrl: adImage.dataUrl }))
+          if (adImage.format === "story") {
+            setLivePreview((p) => ({ ...p, storyImageUrl: adImage.dataUrl }))
+          } else {
+            setLivePreview((p) => ({ ...p, feedImageUrl: adImage.dataUrl }))
+          }
         }
       } catch (err) {
         console.error("Failed to restore ad images", err)
@@ -218,10 +224,16 @@ const CriarAnuncioPage = () => {
       saveAdImageFile("video", null)
       saveAdImageFile("thumb", null)
     } else {
-      setAdFeedImageFile(files.feed ?? null)
-      setAdStoryImageFile(files.story ?? null)
-      saveAdImageFile("feed", files.feed ?? null)
-      saveAdImageFile("story", files.story ?? null)
+      // a null file with a preview kept means the slot reuses the stored file;
+      // a null file without preview means the user cleared the slot
+      const keptFeed = image.type === "file" && image.feedPreviewUrl ? adFeedImageFile : null
+      const keptStory = image.type === "file" && image.storyPreviewUrl ? adStoryImageFile : null
+      const feed = files.feed ?? keptFeed
+      const story = files.story ?? keptStory
+      setAdFeedImageFile(feed)
+      setAdStoryImageFile(story)
+      saveAdImageFile("feed", feed)
+      saveAdImageFile("story", story)
       setAdVideoFile(null)
       setAdThumbFile(null)
       setCarouselFiles([])
@@ -248,7 +260,14 @@ const CriarAnuncioPage = () => {
   // editor; flow state stays in localStorage so the user comes right back.
   const handleCreateLandingPageForAd = async (name: string, template: LandingPageTemplate, slug: string) => {
     const page = await createLandingPage({ name, slug, content: template.content })
-    flow.update({ optimizationGoal: { objective: "link_clicks", link: "", landingPage: null } })
+    flow.update({
+      optimizationGoal: {
+        objective: "link_clicks",
+        link: "",
+        landingPage: null,
+        callToAction: flow.optimizationGoal?.callToAction ?? "LEARN_MORE",
+      },
+    })
     router.push(`/paginas-de-vendas/editor/${page.id}?from=criar-anuncio&step=${flow.step}`)
   }
 
@@ -278,9 +297,10 @@ const CriarAnuncioPage = () => {
       flow.update({
         step: targetStep ?? 5,
         optimizationGoal: {
-          objective: "link_clicks",
+          objective: "landing_page_views",
           link: page.public_url,
           landingPage: { id: page.id, name: page.name, status: page.status, public_url: page.public_url },
+          callToAction: flow.optimizationGoal?.callToAction ?? "LEARN_MORE",
         },
       })
       setLivePreview((p) => ({ ...p, link: page.public_url }))
@@ -314,6 +334,7 @@ const CriarAnuncioPage = () => {
     message: flow.adMessage ?? undefined,
     optimization_goal: flow.optimizationGoal?.objective ?? undefined,
     link: flow.optimizationGoal?.link ?? undefined,
+    call_to_action: flow.optimizationGoal?.callToAction ?? undefined,
     media_type: mediaTypeFromFlow(),
     geo_locations: buildGeoLocations(),
   })
@@ -361,7 +382,7 @@ const CriarAnuncioPage = () => {
 
     return {
       feedFile: adFeedImageFile ?? undefined,
-      storyFile: adStoryImageFile ?? adFeedImageFile ?? undefined,
+      storyFile: adStoryImageFile ?? undefined,
     }
   }
 
@@ -503,6 +524,7 @@ const CriarAnuncioPage = () => {
             initialValues={flow.optimizationGoal}
             onComplete={handleObjectiveComplete}
             onLiveChange={(link) => setLivePreview((p) => ({ ...p, link: link ?? undefined }))}
+            onLiveCtaChange={(ctaLabel) => setLivePreview((p) => ({ ...p, ctaLabel }))}
             onCreateLandingPage={handleCreateLandingPageForAd}
             onEditLandingPage={handleEditLandingPageForAd}
             orgSlug={organization?.slug}
@@ -533,6 +555,9 @@ const CriarAnuncioPage = () => {
     carousel: livePreview.carousel,
     organizationName: organization?.name,
     link: livePreview.link ?? flow.optimizationGoal?.link,
+    callToAction:
+      livePreview.ctaLabel ??
+      (flow.optimizationGoal ? CALL_TO_ACTION_LABELS[flow.optimizationGoal.callToAction] : undefined),
   }
 
   return (

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Sparkles, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+// import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { StepHeader } from "@/features/adCreationFlow/step-header"
 import { generateCopy } from "@/api/base-ad-creative"
@@ -27,6 +27,9 @@ const SUGGESTIONS = [
   "Produto natural, qualidade garantida. Peça já e receba em casa.",
 ]
 
+// Campos de detalhamento desabilitados por enquanto — geração usa só o briefing.
+// Restaurar junto com o bloco "Ocultar detalhes" comentado no JSX abaixo.
+/*
 const ASSIST_FIELDS: Array<{ key: keyof CopyInputs; label: string; placeholder: string }> = [
   {
     key: "hook",
@@ -54,6 +57,7 @@ const ASSIST_FIELDS: Array<{ key: keyof CopyInputs; label: string; placeholder: 
     placeholder: "Ex: Peça um orçamento, Compre agora.",
   },
 ]
+*/
 
 export const AdMessageStep = ({
   initialValue,
@@ -65,8 +69,8 @@ export const AdMessageStep = ({
   const [mode, setMode] = useState<Mode>("manual")
   const [message, setMessage] = useState(initialValue ?? "")
   const [briefing, setBriefing] = useState("")
-  const [showDetails, setShowDetails] = useState(true)
-  const [assistInputs, setAssistInputs] = useState<CopyInputs>({})
+  // const [showDetails, setShowDetails] = useState(true)
+  const [assistInputs] = useState<CopyInputs>({})
   const [variations, setVariations] = useState<GeneratedCopyVariation[]>([])
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [assistStatus, setAssistStatus] = useState<AssistStatus>("idle")
@@ -76,13 +80,13 @@ export const AdMessageStep = ({
     onLiveChange?.(value)
   }
 
-  const handleFieldChange = (key: keyof CopyInputs, value: string) => {
-    setAssistInputs((prev) => ({ ...prev, [key]: value }))
-  }
+  // const handleFieldChange = (key: keyof CopyInputs, value: string) => {
+  //   setAssistInputs((prev) => ({ ...prev, [key]: value }))
+  // }
 
-  const filledCount = Object.values(assistInputs).filter((v) => v && v.trim().length > 0).length
+  // const filledCount = Object.values(assistInputs).filter((v) => v && v.trim().length > 0).length
 
-  const canGenerate = briefing.trim().length >= 10 || filledCount >= 3
+  const canGenerate = briefing.trim().length >= 10
 
   const handleGenerate = async () => {
     setAssistStatus("loading")
@@ -173,11 +177,10 @@ export const AdMessageStep = ({
             </div>
             <Textarea
               id="adMessage"
-              placeholder="Ex: Vista seu estilo! Camisetas e bonés com frete grátis. Aproveite a promoção de inverno."
               value={message}
               onChange={(e) => handleMessageChange(e.target.value)}
+              placeholder="Ex: Vista seu estilo! Camisetas e bonés com frete grátis. Aproveite a promoção de inverno."
               className="min-h-[120px] resize-none rounded-xl focus-visible:ring-0 focus-visible:shadow-[0_0_0_3px_var(--primary-soft)] focus-visible:border-primary"
-              required
             />
             <div className="mt-1 flex flex-col gap-1.5">
               {SUGGESTIONS.map((s) => (
@@ -216,6 +219,8 @@ export const AdMessageStep = ({
                   Conte o que você anuncia, para quem e qual é a oferta. A IA cria o resto.
                 </p>
               </div>
+              {/* Detalhamento opcional desabilitado por enquanto — restaurar junto
+                  com ASSIST_FIELDS/handleFieldChange/showDetails comentados acima.
               <button
                 type="button"
                 onClick={() => setShowDetails((v) => !v)}
@@ -238,9 +243,10 @@ export const AdMessageStep = ({
                   ))}
                 </div>
               )}
+              */}
               {!canGenerate && (
                 <p className="text-xs text-muted-foreground">
-                  Escreva uma breve descrição acima (ou preencha pelo menos 3 detalhes) para gerar.
+                  Escreva uma breve descrição acima para gerar.
                 </p>
               )}
               {assistStatus === "error" && (

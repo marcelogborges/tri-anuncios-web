@@ -6,9 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { AdImageData, CarouselCardData } from "@/features/adCreationFlow/use-ad-creation-flow"
+import {
+  ImageCropDialog,
+  MIN_IMAGE_SIDE,
+  cropSizeError,
+  maxCropWidth,
+  readImageDimensions,
+  type CropTarget,
+} from "@/features/adCreationFlow/image-crop-dialog"
 
 const MIN_CARDS = 2
 const MAX_CARDS = 10
+
+const CARD_CROP = { aspect: 1, outputWidth: 1080, outputHeight: 1080 } as const
 
 type CardDraft = {
   id: string
@@ -50,6 +60,9 @@ export const AdCarouselUpload = ({ initialValue, onComplete, onLiveChange }: Pro
   )
   const inputRef = useRef<HTMLInputElement>(null)
   const targetIndexRef = useRef(0)
+  const cropSourceUrlRef = useRef<string | null>(null)
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
 
   const emitLiveChange = (next: CardDraft[]) => {
     onLiveChange?.(
@@ -69,7 +82,30 @@ export const AdCarouselUpload = ({ initialValue, onComplete, onLiveChange }: Pro
     inputRef.current?.click()
   }
 
-  const handleFileSelected = (file: File) => {
+  const releaseCropSource = () => {
+    if (cropSourceUrlRef.current) URL.revokeObjectURL(cropSourceUrlRef.current)
+    cropSourceUrlRef.current = null
+  }
+
+  const handleFileSelected = async (file: File) => {
+    setImageError(null)
+    const { width, height } = await readImageDimensions(file)
+    if (maxCropWidth(width, height, CARD_CROP.aspect) < MIN_IMAGE_SIDE) {
+      setImageError(cropSizeError("1:1 do cartão", CARD_CROP.aspect))
+      return
+    }
+    releaseCropSource()
+    const sourceUrl = URL.createObjectURL(file)
+    cropSourceUrlRef.current = sourceUrl
+    setCropTarget({
+      sourceUrl,
+      fileName: file.name,
+      title: `Recorte do cartão ${targetIndexRef.current + 1} (1:1)`,
+      ...CARD_CROP,
+    })
+  }
+
+  const applyCroppedCard = (file: File) => {
     const index = targetIndexRef.current
     updateCards(
       cards.map((card, i) => {
@@ -78,6 +114,14 @@ export const AdCarouselUpload = ({ initialValue, onComplete, onLiveChange }: Pro
         return { ...card, file, fileName: file.name, previewUrl: URL.createObjectURL(file) }
       })
     )
+    releaseCropSource()
+  }
+
+  const handleCropOpenChange = (open: boolean) => {
+    if (!open) {
+      releaseCropSource()
+      setCropTarget(null)
+    }
   }
 
   const updateField = (index: number, field: "headline" | "link", value: string) => {
@@ -204,9 +248,11 @@ export const AdCarouselUpload = ({ initialValue, onComplete, onLiveChange }: Pro
         }}
       />
 
+      {imageError && <p className="text-sm text-destructive">{imageError}</p>}
       <Button type="submit" className="w-full rounded-full" disabled={!canSubmit}>
         Continuar
       </Button>
+      <ImageCropDialog target={cropTarget} onOpenChange={handleCropOpenChange} onCropped={applyCroppedCard} />
     </form>
   )
 }

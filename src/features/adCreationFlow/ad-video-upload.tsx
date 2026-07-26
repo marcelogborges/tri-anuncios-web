@@ -5,13 +5,53 @@ import { Clapperboard, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { AdImageData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { ImageSlot } from "@/features/adCreationFlow/image-slot"
+import {
+  ImageCropDialog,
+  MIN_IMAGE_SIDE,
+  cropSizeError,
+  maxCropWidth,
+  readImageDimensions,
+  type CropTarget,
+} from "@/features/adCreationFlow/image-crop-dialog"
 
 const ACCEPTED_VIDEO_TYPES = "video/mp4,video/quicktime,video/webm"
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024
+const STORY_MIN_RATIO = 1.5
+const FEED_MIN_RATIO = 0.97
+const FEED_MAX_RATIO = 1.83
+
+const THUMB_CROP = { aspect: 1, outputWidth: 1080, outputHeight: 1080, title: "Recorte da capa (1:1)" } as const
 
 export type AdVideoFiles = {
   video: File | null
   thumb: File | null
+}
+
+type VideoPlacement = "story" | "feed"
+
+const readVideoDimensions = (file: File): Promise<{ width: number; height: number }> =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const video = document.createElement("video")
+    video.preload = "metadata"
+    video.onloadedmetadata = () => {
+      const dimensions = { width: video.videoWidth, height: video.videoHeight }
+      URL.revokeObjectURL(url)
+      resolve(dimensions)
+    }
+    video.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error("video metadata unavailable"))
+    }
+    video.src = url
+  })
+
+const classifyVideo = (width: number, height: number): VideoPlacement | null => {
+  if (width === 0 || height === 0) return null
+  if (height / width >= STORY_MIN_RATIO) return "story"
+  const ratio = width / height
+  if (ratio >= FEED_MIN_RATIO && ratio <= FEED_MAX_RATIO) return "feed"
+  return null
 }
 
 type Props = {
@@ -29,16 +69,32 @@ export const AdVideoUpload = ({ initialValue, onComplete, onLiveChange }: Props)
   const [thumbFile, setThumbFile] = useState<File | null>(null)
   const [thumbPreviewUrl, setThumbPreviewUrl] = useState<string | null>(initial?.thumbPreviewUrl ?? null)
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [thumbError, setThumbError] = useState<string | null>(null)
+  const [placement, setPlacement] = useState<VideoPlacement | null>(null)
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null)
 
   const prevVideoUrlRef = useRef<string | null>(null)
   const prevThumbUrlRef = useRef<string | null>(null)
+  const cropSourceUrlRef = useRef<string | null>(null)
 
-  const handleVideoSelect = (file: File) => {
+  const handleVideoSelect = async (file: File) => {
     if (file.size > MAX_VIDEO_BYTES) {
       setVideoError("O vídeo deve ter menos de 500MB.")
       return
     }
+    let nextPlacement: VideoPlacement | null = null
+    try {
+      const { width, height } = await readVideoDimensions(file)
+      nextPlacement = classifyVideo(width, height)
+      if (!nextPlacement) {
+        setVideoError("Formato não suportado — use vídeo quadrado (1:1), paisagem (16:9) ou vertical (9:16).")
+        return
+      }
+    } catch {
+      nextPlacement = null
+    }
     setVideoError(null)
+    setPlacement(nextPlacement)
     if (prevVideoUrlRef.current) URL.revokeObjectURL(prevVideoUrlRef.current)
     const url = URL.createObjectURL(file)
     prevVideoUrlRef.current = url
@@ -47,13 +103,39 @@ export const AdVideoUpload = ({ initialValue, onComplete, onLiveChange }: Props)
     onLiveChange?.(url, thumbPreviewUrl)
   }
 
-  const handleThumbSelect = (file: File) => {
+  const releaseCropSource = () => {
+    if (cropSourceUrlRef.current) URL.revokeObjectURL(cropSourceUrlRef.current)
+    cropSourceUrlRef.current = null
+  }
+
+  const handleThumbSelect = async (file: File) => {
+    setThumbError(null)
+    const { width, height } = await readImageDimensions(file)
+    if (maxCropWidth(width, height, THUMB_CROP.aspect) < MIN_IMAGE_SIDE) {
+      setThumbError(cropSizeError("1:1 da capa", THUMB_CROP.aspect))
+      return
+    }
+    releaseCropSource()
+    const sourceUrl = URL.createObjectURL(file)
+    cropSourceUrlRef.current = sourceUrl
+    setCropTarget({ sourceUrl, fileName: file.name, ...THUMB_CROP })
+  }
+
+  const applyCroppedThumb = (file: File) => {
     if (prevThumbUrlRef.current) URL.revokeObjectURL(prevThumbUrlRef.current)
     const url = URL.createObjectURL(file)
     prevThumbUrlRef.current = url
     setThumbFile(file)
     setThumbPreviewUrl(url)
     onLiveChange?.(videoPreviewUrl, url)
+    releaseCropSource()
+  }
+
+  const handleCropOpenChange = (open: boolean) => {
+    if (!open) {
+      releaseCropSource()
+      setCropTarget(null)
+    }
   }
 
   const handleClearVideo = () => {
@@ -133,6 +215,11 @@ export const AdVideoUpload = ({ initialValue, onComplete, onLiveChange }: Props)
           </button>
         )}
         {videoError && <p className="text-label-caps text-destructive">{videoError}</p>}
+        {!videoError && placement && (
+          <p className="text-label-caps text-primary">
+            {placement === "story" ? "Este vídeo vai veicular em Stories e Reels" : "Este vídeo vai veicular no Feed"}
+          </p>
+        )}
         <input
           ref={videoInputRef}
           type="file"
@@ -155,10 +242,12 @@ export const AdVideoUpload = ({ initialValue, onComplete, onLiveChange }: Props)
         onFileSelect={handleThumbSelect}
         onClear={handleClearThumb}
       />
+      {thumbError && <p className="text-label-caps text-destructive">{thumbError}</p>}
 
       <Button type="submit" className="w-full rounded-full" disabled={!canSubmit}>
         Continuar
       </Button>
+      <ImageCropDialog target={cropTarget} onOpenChange={handleCropOpenChange} onCropped={applyCroppedThumb} />
     </form>
   )
 }

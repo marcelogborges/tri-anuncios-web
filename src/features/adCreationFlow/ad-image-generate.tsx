@@ -7,8 +7,13 @@ import { cn } from "@/lib/utils"
 import type { AdImageData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import { generateImage } from "@/api/base-ad-creative"
 import type { GenerateImageInputs } from "@/api/base-ad-creative"
+import { ImageCropDialog, type CropTarget } from "@/features/adCreationFlow/image-crop-dialog"
 
 type GenerateStatus = "idle" | "loading" | "done" | "error"
+
+type ImageFormat = "feed" | "story"
+
+const STORY_CROP = { aspect: 9 / 16, outputWidth: 1080, outputHeight: 1920, title: "Recorte para Stories e Reels (9:16)" } as const
 
 type StyleOption = {
   key: "professional" | "vibrant" | "natural"
@@ -59,6 +64,10 @@ export const AdImageGenerate = ({
     initialValue?.type === "generated" ? initialValue.dataUrl : null
   )
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [imageFormat, setImageFormat] = useState<ImageFormat>(
+    initialValue?.type === "generated" ? (initialValue.format ?? "feed") : "feed"
+  )
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null)
 
   const prevProductUrlRef = useRef<string | null>(null)
 
@@ -90,11 +99,12 @@ export const AdImageGenerate = ({
         adName: adName ?? "",
         productService: adProductService,
         style: selectedStyle,
+        imageFormat,
       }
       const dataUrl = await generateImage(inputs)
       setGeneratedDataUrl(dataUrl)
       setGenerateStatus("done")
-      onLiveChange?.(dataUrl, null)
+      onLiveChange?.(imageFormat === "feed" ? dataUrl : null, imageFormat === "story" ? dataUrl : null)
     } catch {
       setGenerateStatus("error")
       setErrorMessage("Não foi possível gerar a imagem. Tente novamente.")
@@ -110,8 +120,18 @@ export const AdImageGenerate = ({
 
   const handleSubmit = () => {
     if (!generatedDataUrl) return
+    if (imageFormat === "story") {
+      setCropTarget({ sourceUrl: generatedDataUrl, fileName: "generated-ad-image.png", ...STORY_CROP })
+      return
+    }
     const file = dataUrlToFile(generatedDataUrl, "generated-ad-image.png")
-    const image: AdImageData = { type: "generated", dataUrl: generatedDataUrl }
+    const image: AdImageData = { type: "generated", dataUrl: generatedDataUrl, format: "feed" }
+    onComplete(image, file)
+  }
+
+  const handleStoryCropped = (file: File) => {
+    if (!generatedDataUrl) return
+    const image: AdImageData = { type: "generated", dataUrl: generatedDataUrl, format: "story" }
     onComplete(image, file)
   }
 
@@ -133,7 +153,7 @@ export const AdImageGenerate = ({
           className="w-full rounded-lg object-contain max-h-64"
         />
         <Button className="w-full rounded-full" onClick={handleSubmit}>
-          Usar esta imagem
+          {imageFormat === "story" ? "Ajustar e usar esta imagem" : "Usar esta imagem"}
         </Button>
         <div className="text-center">
           <button
@@ -144,6 +164,11 @@ export const AdImageGenerate = ({
             Gerar novamente
           </button>
         </div>
+        <ImageCropDialog
+          target={cropTarget}
+          onOpenChange={(open) => { if (!open) setCropTarget(null) }}
+          onCropped={handleStoryCropped}
+        />
       </div>
     )
   }
@@ -211,6 +236,31 @@ export const AdImageGenerate = ({
           className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleProductFileSelect(f) }}
         />
+      </div>
+      <div>
+        <p className="text-body-sm font-semibold mb-3">Formato</p>
+        <div className="flex gap-1 rounded-full bg-muted p-1">
+          <button
+            type="button"
+            onClick={() => setImageFormat("feed")}
+            className={cn(
+              "flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+              imageFormat === "feed" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Feed (1:1)
+          </button>
+          <button
+            type="button"
+            onClick={() => setImageFormat("story")}
+            className={cn(
+              "flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+              imageFormat === "story" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Story / Reels (9:16)
+          </button>
+        </div>
       </div>
       <div>
         <p className="text-body-sm font-semibold mb-3">Estilo visual</p>

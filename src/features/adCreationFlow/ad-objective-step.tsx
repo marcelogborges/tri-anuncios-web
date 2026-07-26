@@ -5,7 +5,14 @@ import { ExternalLink, LayoutTemplate } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { OBJECTIVE_OPTIONS } from "@/features/adCreationFlow/constants"
+import {
+  CALL_TO_ACTION_LABELS,
+  CALL_TO_ACTION_OPTIONS,
+  DEFAULT_CALL_TO_ACTION,
+  OBJECTIVE_OPTIONS,
+  WHATSAPP_CALL_TO_ACTION,
+  type CallToAction,
+} from "@/features/adCreationFlow/constants"
 import { CardOption } from "@/features/adCreationFlow/card-option"
 import { StepHeader } from "@/features/adCreationFlow/step-header"
 import { LandingPagePickerDialog } from "@/features/landingPages/landing-page-picker-dialog"
@@ -15,6 +22,8 @@ import type { LandingPageTemplate } from "@/features/landingPages/templates"
 
 export type AdObjective = (typeof OBJECTIVE_OPTIONS)[number]["value"]
 
+export type AdOptimizationGoal = AdObjective | "landing_page_views"
+
 export type AdLandingPageRef = {
   id: number
   name: string
@@ -23,9 +32,10 @@ export type AdLandingPageRef = {
 }
 
 export type AdObjectiveData = {
-  objective: AdObjective
+  objective: AdOptimizationGoal
   link: string
   landingPage?: AdLandingPageRef | null
+  callToAction: CallToAction
 }
 
 type Destination = "site" | "landing_page"
@@ -34,6 +44,7 @@ type Props = {
   initialValues?: AdObjectiveData | null
   onComplete: (data: AdObjectiveData) => void
   onLiveChange?: (link: string | null) => void
+  onLiveCtaChange?: (label: string) => void
   onCreateLandingPage?: (name: string, template: LandingPageTemplate, slug: string) => Promise<void>
   onEditLandingPage?: (id: number) => void
   orgSlug?: string
@@ -52,14 +63,20 @@ export const AdObjectiveStep = ({
   initialValues,
   onComplete,
   onLiveChange,
+  onLiveCtaChange,
   onCreateLandingPage,
   onEditLandingPage,
   orgSlug,
 }: Props) => {
-  const [selected, setSelected] = useState<AdObjective | null>(initialValues?.objective ?? null)
+  const [selected, setSelected] = useState<AdObjective | null>(
+    initialValues ? (initialValues.objective === "whatsapp_messages" ? "whatsapp_messages" : "link_clicks") : null
+  )
   const [link, setLink] = useState(initialValues?.landingPage ? "" : (initialValues?.link ?? ""))
   const [destination, setDestination] = useState<Destination>(
     initialValues?.landingPage ? "landing_page" : "site"
+  )
+  const [callToAction, setCallToAction] = useState<CallToAction>(
+    initialValues?.callToAction ?? DEFAULT_CALL_TO_ACTION
   )
   const [landingPage, setLandingPage] = useState<AdLandingPageRef | null>(
     initialValues?.landingPage ?? null
@@ -74,10 +91,18 @@ export const AdObjectiveStep = ({
 
   const handleSelect = (value: AdObjective) => {
     if (value !== selected) {
+      const nextCta = value === "whatsapp_messages" ? WHATSAPP_CALL_TO_ACTION : DEFAULT_CALL_TO_ACTION
       setSelected(value)
       setLink("")
       setPhone("")
+      setCallToAction(nextCta)
+      onLiveCtaChange?.(CALL_TO_ACTION_LABELS[nextCta])
     }
+  }
+
+  const handleCtaSelect = (value: CallToAction) => {
+    setCallToAction(value)
+    onLiveCtaChange?.(CALL_TO_ACTION_LABELS[value])
   }
 
   const handleDestinationChange = (next: Destination) => {
@@ -121,14 +146,14 @@ export const AdObjectiveStep = ({
   const handleSubmit = () => {
     if (!selected) return
     if (selected === "link_clicks" && destination === "landing_page" && landingPage) {
-      onComplete({ objective: selected, link: landingPage.public_url, landingPage })
+      onComplete({ objective: "landing_page_views", link: landingPage.public_url, landingPage, callToAction })
       return
     }
     const finalLink =
-      selected === "lead_generation"
+      selected === "whatsapp_messages"
         ? `https://wa.me/55${phoneToDigits(phone)}`
         : link
-    onComplete({ objective: selected, link: finalLink, landingPage: null })
+    onComplete({ objective: selected, link: finalLink, landingPage: null, callToAction })
   }
 
   return (
@@ -138,8 +163,12 @@ export const AdObjectiveStep = ({
         title="Qual é o objetivo do anúncio?"
         subtitle="Escolha o que você espera alcançar com esse anúncio."
       />
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <p className="text-base font-semibold text-foreground">Objetivo do anúncio</p>
+            <p className="text-sm text-muted-foreground">O que você espera que as pessoas façam ao ver o anúncio</p>
+          </div>
           {OBJECTIVE_OPTIONS.map((opt) => {
             const Icon = opt.icon
             return (
@@ -249,7 +278,7 @@ export const AdObjectiveStep = ({
                     )}
                   </div>
                 )}
-                {selected === opt.value && opt.value === "lead_generation" && (
+                {selected === opt.value && opt.value === "whatsapp_messages" && (
                   <div className="mt-2 flex flex-col gap-2 pl-2">
                     <label htmlFor="whatsapp-phone" className="text-base font-semibold text-primary">
                       Número do WhatsApp
@@ -267,6 +296,29 @@ export const AdObjectiveStep = ({
               </div>
             )
           })}
+        </div>
+        <div className="flex flex-col gap-3 border-t border-border pt-6">
+          <div className="flex flex-col gap-1">
+            <p className="text-base font-semibold text-foreground">Botão do anúncio</p>
+            <p className="text-sm text-muted-foreground">Texto do botão que aparece no seu anúncio</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CALL_TO_ACTION_OPTIONS.map((cta) => (
+              <button
+                key={cta.value}
+                type="button"
+                onClick={() => handleCtaSelect(cta.value)}
+                className={cn(
+                  "rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
+                  callToAction === cta.value
+                    ? "border-primary bg-[var(--primary-soft)] text-primary"
+                    : "border-border text-muted-foreground hover:border-primary hover:text-foreground"
+                )}
+              >
+                {cta.label}
+              </button>
+            ))}
+          </div>
         </div>
         <Button
           className="w-full rounded-full"
