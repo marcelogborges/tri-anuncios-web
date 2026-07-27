@@ -26,7 +26,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { formatDayMonth, toIsoDateValue } from "@/lib/format"
+import { formatCurrencyFromCents, formatDayMonth, toIsoDateValue } from "@/lib/format"
+import { PRICING_TIER_LABELS } from "@/api/ad-request"
 import type { AdRequest } from "@/api/ad-request"
 import type {
   BreakdownDimension,
@@ -78,6 +79,7 @@ export function AdStatistics({ adRequest }: Props) {
   const metaPublication = adRequest.platform_publications.find((p) => p.provider === "meta")
   const statusConfig = STATUS_CONFIG[adRequest.status] ?? { label: adRequest.status, variant: "outline" as const }
   const imageUrl = adRequest.base_ad_creative.feed_image_url ?? adRequest.base_ad_creative.story_image_url
+  const budgetCents = adRequest.budget_amount_cents ?? adRequest.ad_package?.price_cents ?? null
 
   const loadInsights = async (selection: PeriodSelection) => {
     if (!metaPublication) return
@@ -182,10 +184,12 @@ export function AdStatistics({ adRequest }: Props) {
               {adRequest.status === "published" && <PulseDot />}
               {statusConfig.label}
             </Badge>
-            {adRequest.ad_package && (
+            {(adRequest.pricing_tier || adRequest.ad_package) && (
               <span className="hidden sm:inline text-sm text-muted-foreground">
-                <strong className="text-foreground">{adRequest.ad_package.name}</strong>
-                {" · "}{adRequest.ad_package.duration_days} dias
+                <strong className="text-foreground">
+                  {adRequest.pricing_tier ? PRICING_TIER_LABELS[adRequest.pricing_tier] : adRequest.ad_package?.name}
+                </strong>
+                {" · "}{adRequest.duration_days ?? adRequest.ad_package?.duration_days} dias
               </span>
             )}
           </div>
@@ -401,8 +405,8 @@ export function AdStatistics({ adRequest }: Props) {
                   icon={<CreditCard className="size-3.5" />}
                   value={formatBRL(insightsData.spend)}
                   sub={
-                    adRequest.ad_package
-                      ? `de ${formatBRL(adRequest.ad_package.price_cents / 100)} do plano`
+                    budgetCents
+                      ? `de ${formatCurrencyFromCents(budgetCents)} investidos`
                       : "total investido"
                   }
                 />

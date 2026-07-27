@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check } from "lucide-react"
+import Link from "next/link"
+import { ChevronRight, Pencil } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -11,21 +12,34 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { getAdPackages } from "@/api/ad-package"
-import type { AdPackage } from "@/api/ad-package"
 import { publishAdRequest } from "@/api/ad-request"
 import { DatePicker } from "@/components/ui/date-picker"
 import { cn } from "@/lib/utils"
-import { formatCurrencyFromCents } from "@/lib/format"
+import { formatCurrencyBRL } from "@/lib/format"
+import { BudgetSlider } from "@/features/adInvestment/budget-slider"
+import {
+  BUDGET_MAX,
+  BUDGET_MIN,
+  NUDGE_GAP,
+  NUDGES,
+  TIER_SUMMARIES,
+  clampAmount,
+  estimateClicks,
+  estimateReach,
+  formatCompactPeople,
+  tierForAmount,
+} from "@/features/adInvestment/budget-estimates"
 
-const PROVIDER_LABELS: Record<string, string> = {
-  meta: "Meta Ads",
-  tiktok_ads: "TikTok Ads",
-  google_ads: "Google Ads",
-}
+const MIN_SCHEDULE_LEAD_MS = 60 * 60 * 1000
+const MAX_SCHEDULE_HORIZON_MS = 90 * 24 * 60 * 60 * 1000
 
-const MIN_SCHEDULE_LEAD_MS = 60 * 60 * 1000 // 1 hora
-const MAX_SCHEDULE_HORIZON_MS = 90 * 24 * 60 * 60 * 1000 // 90 dias
+const chipClass = (active: boolean) =>
+  cn(
+    "whitespace-nowrap rounded-full border px-3 py-1 text-sm font-semibold transition-colors",
+    active
+      ? "border-primary bg-[var(--primary-soft)] text-primary"
+      : "border-border text-muted-foreground hover:border-primary hover:text-foreground"
+  )
 
 type PublishAdModalProps = {
   adRequestId: number | null
@@ -40,9 +54,9 @@ export const PublishAdModal = ({
   onOpenChange,
   onPublished,
 }: PublishAdModalProps) => {
-  const [packages, setPackages] = useState<AdPackage[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [amount, setAmount] = useState(350)
+  const [inputValue, setInputValue] = useState<string | null>(null)
+  const [durationDays, setDurationDays] = useState<number | null>(null)
   const [scheduleMode, setScheduleMode] = useState<"now" | "scheduled">("now")
   const [scheduledStartAt, setScheduledStartAt] = useState<Date | null>(null)
   const [scheduleBounds, setScheduleBounds] = useState<{ min: Date; max: Date } | null>(null)
@@ -51,24 +65,43 @@ export const PublishAdModal = ({
 
   useEffect(() => {
     if (!open) return
-    setSelectedId(null)
+    setAmount(350)
+    setInputValue(null)
+    setDurationDays(null)
     setScheduleMode("now")
     setScheduledStartAt(null)
-    setScheduleBounds({
-      min: new Date(Date.now() + MIN_SCHEDULE_LEAD_MS),
-      max: new Date(Date.now() + MAX_SCHEDULE_HORIZON_MS),
-    })
     setError(null)
-    setLoading(true)
-
-    getAdPackages()
-      .then(setPackages)
-      .catch(() => setError("Erro ao carregar planos."))
-      .finally(() => setLoading(false))
   }, [open])
 
+  const tier = tierForAmount(amount)
+  const effectiveDuration =
+    tier.durations.length > 1 && durationDays && tier.durations.includes(durationDays)
+      ? durationDays
+      : tier.durations[0]
+  const dailyAmount = Math.round(amount / effectiveDuration)
+  const reach = estimateReach(amount)
+  const clicks = estimateClicks(amount)
+  const nudge = NUDGES.find((n) => amount < n.threshold && n.threshold - amount <= NUDGE_GAP)
+  const displayValue = inputValue ?? amount.toLocaleString("pt-BR")
+
+  const handleInputChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, "")
+    setInputValue(digits)
+    const parsed = Number(digits)
+    if (parsed >= BUDGET_MIN && parsed <= BUDGET_MAX) {
+      setAmount(parsed)
+      setError(null)
+    }
+  }
+
+  const handleInputBlur = () => {
+    const parsed = Number(inputValue ?? amount)
+    setAmount(Number.isNaN(parsed) || parsed === 0 ? amount : clampAmount(parsed))
+    setInputValue(null)
+  }
+
   const handlePublish = async () => {
-    if (!adRequestId || !selectedId || publishing) return
+    if (!adRequestId || publishing) return
 
     let scheduledStartAtIso: string | null = null
     if (scheduleMode === "scheduled") {
@@ -92,7 +125,11 @@ export const PublishAdModal = ({
     setError(null)
 
     try {
-      await publishAdRequest(adRequestId, selectedId, scheduledStartAtIso)
+      await publishAdRequest(adRequestId, {
+        budget_amount_cents: amount * 100,
+        duration_days: effectiveDuration,
+        scheduled_start_at: scheduledStartAtIso,
+      })
       onPublished()
     } catch {
       setError("Erro ao publicar anúncio. Tente novamente.")
@@ -103,103 +140,128 @@ export const PublishAdModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Escolha um plano</DialogTitle>
+          <DialogTitle>Quanto você quer investir?</DialogTitle>
           <DialogDescription>
-            Selecione o pacote de anúncio para publicar nas plataformas.
+            Pagamento único: todo o valor vira veiculação do seu anúncio.
           </DialogDescription>
         </DialogHeader>
-
-        {loading && (
-          <p className="text-sm text-muted-foreground py-4">Carregando planos...</p>
-        )}
-
-        {error && <p className="text-sm text-destructive py-2">{error}</p>}
-
-        {!loading && !error && packages.length === 0 && (
-          <p className="text-sm text-muted-foreground py-4">
-            Nenhum plano disponível no momento.
+        <div className="grid gap-4 py-2">
+          <label className="flex cursor-text items-baseline justify-center gap-1">
+            <span className="text-title-2 text-muted-foreground">R$</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={displayValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={handleInputBlur}
+              aria-label="Valor do investimento em reais"
+              style={{ width: `${Math.max(displayValue.length, 2)}ch` }}
+              className="border-b-2 border-dashed border-border bg-transparent text-center text-display tabular-nums outline-none transition-colors focus:border-primary"
+            />
+            <Pencil className="h-4 w-4 shrink-0 self-center text-muted-foreground" />
+          </label>
+          <BudgetSlider
+            value={amount}
+            onChange={(value) => {
+              setAmount(value)
+              setInputValue(null)
+              setError(null)
+            }}
+          />
+          <p
+            className={cn(
+              "min-h-[3.5rem] rounded-lg border px-4 py-2.5 text-xs sm:min-h-10 transition-colors duration-200",
+              nudge ? "border-primary/30 bg-[var(--primary-soft)]" : "border-border text-muted-foreground"
+            )}
+          >
+            {nudge ? (
+              <>
+                Faltam <strong>{formatCurrencyBRL(nudge.threshold - amount)}</strong> para {nudge.feature}.
+              </>
+            ) : (
+              <>
+                <strong className="text-foreground">Plano {tier.label}</strong>: {TIER_SUMMARIES[tier.key]}
+              </>
+            )}
           </p>
-        )}
-
-        {!loading && packages.length > 0 && (
-          <div className="grid gap-3 py-2">
-            {packages.map((pkg) => (
-              <button
-                key={pkg.id}
-                type="button"
-                onClick={() => setSelectedId(pkg.id)}
-                className={cn(
-                  "flex flex-col gap-1 rounded-lg border p-4 text-left transition-colors",
-                  selectedId === pkg.id
-                    ? "border-primary bg-primary/5 ring-1 ring-primary"
-                    : "hover:border-muted-foreground/30"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{pkg.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">
-                      {formatCurrencyFromCents(pkg.price_cents)}
-                    </span>
-                    {selectedId === pkg.id && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                </div>
-                {pkg.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {pkg.description}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {pkg.duration_days} dias
-                  </span>
-                  <span className="text-xs text-muted-foreground">·</span>
-                  {pkg.platform_providers.map((p) => (
-                    <span key={p} className="text-xs text-muted-foreground">
-                      {PROVIDER_LABELS[p] ?? p}
-                    </span>
+          <dl className="flex flex-col gap-2 border-t border-border pt-4 text-body-sm">
+            <div className="flex items-center justify-between gap-4">
+              <dt className="whitespace-nowrap text-muted-foreground">
+                <span className="sm:hidden">Duração</span>
+                <span className="hidden sm:inline">Duração da campanha</span>
+              </dt>
+              {tier.durations.length > 1 ? (
+                <dd className="flex gap-1.5">
+                  {tier.durations.map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setDurationDays(days)}
+                      className={chipClass(effectiveDuration === days)}
+                    >
+                      {days} dias
+                    </button>
                   ))}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {!loading && packages.length > 0 && (
-          <div className="grid gap-2 py-2">
-            <p className="text-sm font-medium">Quando começar?</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setScheduleMode("now")}
-                className={cn(
-                  "flex items-center justify-center rounded-lg border p-3 text-sm whitespace-nowrap transition-colors",
-                  scheduleMode === "now"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary"
-                    : "hover:border-muted-foreground/30"
-                )}
-              >
-                Publicar agora
-              </button>
-              <button
-                type="button"
-                onClick={() => setScheduleMode("scheduled")}
-                className={cn(
-                  "flex items-center justify-center rounded-lg border p-3 text-sm whitespace-nowrap transition-colors",
-                  scheduleMode === "scheduled"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary"
-                    : "hover:border-muted-foreground/30"
-                )}
-              >
-                Agendar início
-              </button>
+                </dd>
+              ) : (
+                <dd className="whitespace-nowrap text-right font-semibold tabular-nums">{effectiveDuration} dias</dd>
+              )}
             </div>
-            {scheduleMode === "scheduled" && (
-              <div className="grid gap-1">
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="whitespace-nowrap text-muted-foreground">Veiculação diária</dt>
+              <dd className="whitespace-nowrap text-right font-semibold tabular-nums">{formatCurrencyBRL(dailyAmount)}/dia</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="whitespace-nowrap text-muted-foreground">Alcance estimado</dt>
+              <dd className="whitespace-nowrap text-right font-semibold tabular-nums">
+                {formatCompactPeople(reach.low)} – {formatCompactPeople(reach.high)}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="whitespace-nowrap text-muted-foreground">Cliques estimados</dt>
+              <dd className="whitespace-nowrap text-right font-semibold tabular-nums">
+                {formatCompactPeople(clicks.low)} – {formatCompactPeople(clicks.high)}
+              </dd>
+            </div>
+            <p className="text-label-caps normal-case tracking-normal text-muted-foreground">
+              Estimativas ilustrativas, variam com público, região e criativo.
+            </p>
+            <div className="mt-2 flex items-center justify-between gap-4 border-t border-border pt-4">
+              <dt className="whitespace-nowrap text-muted-foreground">Início</dt>
+              <dd className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setScheduleMode("now")}
+                  className={chipClass(scheduleMode === "now")}
+                >
+                  Imediato
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScheduleMode("scheduled")
+                    setScheduleBounds({
+                      min: new Date(Date.now() + MIN_SCHEDULE_LEAD_MS),
+                      max: new Date(Date.now() + MAX_SCHEDULE_HORIZON_MS),
+                    })
+                  }}
+                  className={chipClass(scheduleMode === "scheduled")}
+                >
+                  Agendar
+                </button>
+              </dd>
+            </div>
+          </dl>
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows] duration-300 ease-out",
+              scheduleMode === "scheduled" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            )}
+          >
+            <div className="overflow-hidden">
+              <div className="flex flex-col gap-1.5">
                 <DatePicker
                   withTime
                   value={scheduledStartAt}
@@ -207,35 +269,47 @@ export const PublishAdModal = ({
                   minDate={scheduleBounds?.min}
                   maxDate={scheduleBounds?.max}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Mínimo de 1 hora no futuro, máximo de 90 dias.
+                <p className="text-label-caps normal-case tracking-normal text-muted-foreground">
+                  Mínimo de 1 hora no futuro, máximo de 90 dias
                 </p>
               </div>
-            )}
+            </div>
           </div>
-        )}
-
+          {adRequestId != null && (
+            <Link
+              href={`/anuncios/${adRequestId}/investir`}
+              className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 transition-colors hover:border-primary hover:bg-[var(--primary-soft)]"
+            >
+              <span className="min-w-0">
+                <span className="block text-body-sm">Ver detalhes dos planos</span>
+                <span className="block text-label-caps normal-case tracking-normal text-muted-foreground">
+                  Compare Essencial, Impulso e Performance em tela cheia.
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </Link>
+          )}
+          {error && <p className="text-body-sm text-destructive">{error}</p>}
+        </div>
         <DialogFooter>
           <Button
             variant="outline"
+            className="rounded-full"
             onClick={() => onOpenChange(false)}
             disabled={publishing}
           >
             Cancelar
           </Button>
           <Button
+            className="rounded-full"
             onClick={handlePublish}
-            disabled={
-              !selectedId ||
-              publishing ||
-              (scheduleMode === "scheduled" && !scheduledStartAt)
-            }
+            disabled={publishing || (scheduleMode === "scheduled" && !scheduledStartAt)}
           >
             {publishing
               ? "Publicando..."
               : scheduleMode === "scheduled"
-                ? "Agendar"
-                : "Publicar"}
+                ? `Investir ${formatCurrencyBRL(amount)} e agendar`
+                : `Investir ${formatCurrencyBRL(amount)} e publicar`}
           </Button>
         </DialogFooter>
       </DialogContent>

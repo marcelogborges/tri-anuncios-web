@@ -205,3 +205,24 @@ body {
 .kpi-hero .kpi-hero-label { color: rgba(255, 255, 255, 0.8); }
 .kpi-hero .kpi-hero-icon { background: rgba(255, 255, 255, 0.1); color: #b4f4d3; }
 .kpi-hero .kpi-hero-sub { color: rgba(255, 255, 255, 0.8); }
+
+/* Budget slider — custom segmented track drawn by the component; the native
+   input only provides the interactive thumb */
+.budget-slider-input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 3px solid var(--primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.budget-slider-input::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 3px solid var(--primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}

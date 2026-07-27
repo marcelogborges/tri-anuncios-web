@@ -6,7 +6,7 @@ import { clearAdImageFiles } from "@/features/adCreationFlow/ad-image-store"
 
 const STORAGE_KEY = "tri-anuncios:ad-creation-flow"
 const TTL_MS = 30 * 60 * 1000
-const MAX_STEP = 6
+const MAX_STEP = 7
 
 // ?step=<n> deep-links straight to a step (e.g. returning from the landing
 // page editor). Applied synchronously at hydration so no effect can race it.
@@ -30,13 +30,20 @@ export type AdImageData =
   | { type: "video"; videoFileName: string; videoPreviewUrl: string; thumbFileName: string; thumbPreviewUrl: string }
   | { type: "carousel"; cards: CarouselCardData[] }
 
+export type AdInvestmentData = {
+  amountCents: number
+  durationDays: number | null
+}
+
 export type AdCreationFlowState = {
   step: number
   adBasicInfo: AdBasicInfo | null
   adImage: AdImageData | null
   adMessage: string | null
+  adMessageVariations: string[] | null
   geoLocation: GeoLocationData | null
   optimizationGoal: AdObjectiveData | null
+  investment: AdInvestmentData | null
 }
 
 const DEFAULT_STATE: AdCreationFlowState = {
@@ -44,8 +51,10 @@ const DEFAULT_STATE: AdCreationFlowState = {
   adBasicInfo: null,
   adImage: null,
   adMessage: null,
+  adMessageVariations: null,
   geoLocation: null,
   optimizationGoal: null,
+  investment: null,
 }
 
 const load = (): AdCreationFlowState => {

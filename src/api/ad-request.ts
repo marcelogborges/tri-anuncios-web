@@ -26,6 +26,15 @@ export const AD_REQUEST_STATUS_INFO: Record<
   cancelled: { label: "Encerrado", isLive: false },
 }
 
+export type AdRequestCarouselCard = {
+  id: number
+  position: number
+  headline: string | null
+  description: string | null
+  link: string | null
+  image_url: string | null
+}
+
 export type AdRequestBaseAdCreative = {
   id: number
   name: string
@@ -34,8 +43,13 @@ export type AdRequestBaseAdCreative = {
   feed_image_url: string | null
   story_image_url: string | null
   cover_image_url: string | null
+  video_url: string | null
+  carousel_cards: AdRequestCarouselCard[]
   message: string | null
+  message_variations: string[]
+  headline: string | null
   link: string | null
+  call_to_action: string | null
   target_gender: string
   target_age_min: number | null
   target_age_max: number | null
@@ -57,6 +71,14 @@ export type AdRequestPlatformPublication = {
   created_at: string
 }
 
+export type PricingTier = "essencial" | "impulso" | "performance"
+
+export const PRICING_TIER_LABELS: Record<PricingTier, string> = {
+  essencial: "Essencial",
+  impulso: "Impulso",
+  performance: "Performance",
+}
+
 export type AdRequest = {
   id: number
   organization_id: number
@@ -65,6 +87,9 @@ export type AdRequest = {
   base_ad_creative_id: number | null
   status: AdRequestStatus
   scheduled_start_at: string | null
+  budget_amount_cents: number | null
+  duration_days: number | null
+  pricing_tier: PricingTier | null
   created_at: string
   updated_at: string
   base_ad_creative: AdRequestBaseAdCreative
@@ -120,17 +145,23 @@ export const updateAdRequest = async (
   return res.ad_request
 }
 
+export type PublishAdRequestPayload = {
+  budget_amount_cents: number
+  duration_days?: number | null
+  scheduled_start_at?: string | null
+}
+
 export const publishAdRequest = async (
   id: number | string,
-  adPackageId: number,
-  scheduledStartAt?: string | null
+  payload: PublishAdRequestPayload
 ) => {
   const res = await api<AdRequestResponse>(`/api/v1/ad_requests/${id}/publish`, {
     method: "POST",
     body: {
       ad_request: {
-        ad_package_id: adPackageId,
-        ...(scheduledStartAt ? { scheduled_start_at: scheduledStartAt } : {}),
+        budget_amount_cents: payload.budget_amount_cents,
+        ...(payload.duration_days ? { duration_days: payload.duration_days } : {}),
+        ...(payload.scheduled_start_at ? { scheduled_start_at: payload.scheduled_start_at } : {}),
       },
     },
   })

@@ -15,7 +15,8 @@ type AssistStatus = "idle" | "loading" | "done" | "error"
 
 type Props = {
   initialValue?: string | null
-  onComplete: (message: string) => void
+  initialVariations?: string[] | null
+  onComplete: (message: string, variations: string[]) => void
   onLiveChange?: (message: string) => void
   adName?: string
   adProductService?: string
@@ -61,6 +62,7 @@ const ASSIST_FIELDS: Array<{ key: keyof CopyInputs; label: string; placeholder: 
 
 export const AdMessageStep = ({
   initialValue,
+  initialVariations,
   onComplete,
   onLiveChange,
   adName,
@@ -119,9 +121,12 @@ export const AdMessageStep = ({
     setSelectedIndex(null)
   }
 
+  // The generated variations outlive the step: higher budget tiers publish
+  // them as extra ad texts, so all of them are handed back on submit.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onComplete(message)
+    const generatedTexts = variations.map((v) => v.text)
+    onComplete(message, generatedTexts.length > 0 ? generatedTexts : (initialVariations ?? []))
   }
 
   const isIdle = assistStatus === "idle" || assistStatus === "error"

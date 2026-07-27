@@ -120,6 +120,16 @@ export const getPlatformPublicationInsights = async (
   return res
 }
 
+export const getPlatformPublicationPreviewLink = async (
+  adRequestId: number | string,
+  id: number | string
+) => {
+  const res = await api<{ preview_link: string | null }>(
+    `/api/v1/ad_requests/${adRequestId}/platform_publications/${id}/preview_link`
+  )
+  return res.preview_link
+}
+
 export const getPlatformPublicationBreakdownInsights = async (
   adRequestId: number | string,
   id: number | string,

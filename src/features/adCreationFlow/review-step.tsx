@@ -162,13 +162,13 @@ export const ReviewStep = ({ flow, preview, submitting, onEdit, onSaveDraft, onP
 
         <div className="flex flex-col items-center gap-3 pt-4">
           <Button className="w-full rounded-full" onClick={onPublish} disabled={submitting}>
-            {submitting ? "Criando..." : "🚀 Publicar agora"}
+            Continuar
           </Button>
           <Button className="w-full rounded-full" variant="outline" onClick={onSaveDraft} disabled={submitting}>
             Salvar rascunho
           </Button>
           <p className="text-label-caps text-muted-foreground">
-            Você escolhe o pacote na próxima etapa.
+            Você escolhe o investimento na próxima etapa.
           </p>
         </div>
       </div>

@@ -19,6 +19,7 @@ export type AdPreviewProps = {
   link?: string | null
   callToAction?: string
   className?: string
+  footnote?: string | null
 }
 
 type Tab = "story" | "feed"
@@ -341,7 +342,7 @@ const FeedFrame = ({
   )
 }
 
-export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl, carousel, organizationName = "Meu negócio", link, callToAction, className }: AdPreviewProps) => {
+export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl, carousel, organizationName = "Meu negócio", link, callToAction, className, footnote = "Prévia do anúncio · atualiza conforme você preenche" }: AdPreviewProps) => {
   const [tab, setTab] = useState<Tab>("feed")
 
   return (
@@ -383,9 +384,11 @@ export const AdPreview = ({ name, message, feedImageUrl, storyImageUrl, videoUrl
           ctaLabel={callToAction}
         />
       )}
-      <p className="text-label-caps text-muted-foreground text-center max-lg:hidden">
-        Prévia do anúncio · atualiza conforme você preenche
-      </p>
+      {footnote && (
+        <p className="text-label-caps text-muted-foreground text-center max-lg:hidden">
+          {footnote}
+        </p>
+      )}
     </div>
   )
 }

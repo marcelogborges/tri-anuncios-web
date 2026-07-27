@@ -12,7 +12,7 @@ import { getOrganization } from "@/api/organization"
 import type { Organization } from "@/api/organization"
 import { createBaseAdCreative } from "@/api/base-ad-creative"
 import type { CreateBaseAdCreativePayload } from "@/api/base-ad-creative"
-import { createAdRequest } from "@/api/ad-request"
+import { createAdRequest, publishAdRequest } from "@/api/ad-request"
 import { CompleteOrganizationStep } from "@/features/adCreationFlow/complete-organization-step"
 import { AdBasicInfoStep } from "@/features/adCreationFlow/ad-basic-info-step"
 import type { AdBasicInfo } from "@/features/adCreationFlow/ad-basic-info-step"
@@ -25,8 +25,10 @@ import type { GeoLocationData } from "@/features/adCreationFlow/geo-location-ste
 import { AdObjectiveStep } from "@/features/adCreationFlow/ad-objective-step"
 import type { AdObjectiveData } from "@/features/adCreationFlow/ad-objective-step"
 import { ReviewStep } from "@/features/adCreationFlow/review-step"
+import { AdInvestmentStep } from "@/features/adCreationFlow/ad-investment-step"
 import { CALL_TO_ACTION_LABELS } from "@/features/adCreationFlow/constants"
 import { useAdCreationFlow } from "@/features/adCreationFlow/use-ad-creation-flow"
+import type { AdInvestmentData } from "@/features/adCreationFlow/use-ad-creation-flow"
 import {
   saveAdImageFile,
   loadAdImageFiles,
@@ -37,11 +39,10 @@ import {
 } from "@/features/adCreationFlow/ad-image-store"
 import { createLandingPage, getLandingPage } from "@/api/landing-pages"
 import type { LandingPageTemplate } from "@/features/landingPages/templates"
-import { PublishAdModal } from "@/features/myAds/publish-ad-modal"
 import { getPlatformAccounts } from "@/api/platform-accounts"
 import { MetaConnectModal } from "@/features/myAds/meta-connect-modal"
 
-const TOTAL_STEPS = 6
+const TOTAL_STEPS = 7
 
 const CriarAnuncioPage = () => {
   const router = useRouter()
@@ -49,9 +50,7 @@ const CriarAnuncioPage = () => {
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [publishModalOpen, setPublishModalOpen] = useState(false)
   const [metaModalOpen, setMetaModalOpen] = useState(false)
-  const [createdAdRequestId, setCreatedAdRequestId] = useState<number | null>(null)
   const [adFeedImageFile, setAdFeedImageFile] = useState<File | null>(null)
   const [adStoryImageFile, setAdStoryImageFile] = useState<File | null>(null)
   const [adVideoFile, setAdVideoFile] = useState<File | null>(null)
@@ -94,6 +93,10 @@ const CriarAnuncioPage = () => {
   useEffect(() => {
     if (flow.hydrated) fetchOrganization()
   }, [flow.hydrated, fetchOrganization])
+
+  useEffect(() => {
+    if (flow.hydrated) window.scrollTo({ top: 0 })
+  }, [flow.hydrated, flow.step])
 
   useEffect(() => {
     if (!flow.hydrated) return
@@ -244,8 +247,8 @@ const CriarAnuncioPage = () => {
     flow.update({ adImage: image, step: 4 })
   }
 
-  const handleMessageComplete = (message: string) => {
-    flow.update({ adMessage: message, step: 3 })
+  const handleMessageComplete = (message: string, variations: string[]) => {
+    flow.update({ adMessage: message, adMessageVariations: variations, step: 3 })
   }
 
   const handleGeoLocationComplete = (data: GeoLocationData) => {
@@ -332,6 +335,7 @@ const CriarAnuncioPage = () => {
     name: flow.adBasicInfo?.name ?? "",
     product_service: flow.adBasicInfo?.productService ?? undefined,
     message: flow.adMessage ?? undefined,
+    message_variations: (flow.adMessageVariations ?? []).filter((text) => text !== flow.adMessage),
     optimization_goal: flow.optimizationGoal?.objective ?? undefined,
     link: flow.optimizationGoal?.link ?? undefined,
     call_to_action: flow.optimizationGoal?.callToAction ?? undefined,
@@ -397,16 +401,22 @@ const CriarAnuncioPage = () => {
     return adRequest
   }
 
-  const proceedWithPublish = async () => {
+  const proceedWithPublish = async (investment: AdInvestmentData & { scheduledStartAtIso: string | null }) => {
     try {
       const adRequest = await createDraftAdRequest()
       if (adRequest) {
-        setCreatedAdRequestId(adRequest.id)
-        setPublishModalOpen(true)
+        await publishAdRequest(adRequest.id, {
+          budget_amount_cents: investment.amountCents,
+          duration_days: investment.durationDays,
+          scheduled_start_at: investment.scheduledStartAtIso,
+        })
+        flow.clear()
+        router.push("/anuncios")
+        return
       }
+      setSubmitting(false)
     } catch (err) {
-      console.error("Failed to create ad request", err)
-    } finally {
+      console.error("Failed to publish ad request", err)
       setSubmitting(false)
     }
   }
@@ -425,35 +435,39 @@ const CriarAnuncioPage = () => {
     }
   }
 
-  const handlePublish = async () => {
+  const handleContinueToInvestment = () => {
+    flow.update({ step: 7 })
+  }
+
+  const pendingInvestment = useRef<(AdInvestmentData & { scheduledStartAtIso: string | null }) | null>(null)
+
+  const handleInvestmentSubmit = async (investment: AdInvestmentData & { scheduledStartAtIso: string | null }) => {
     if (!user || submitting) return
     setSubmitting(true)
+    flow.update({ investment: { amountCents: investment.amountCents, durationDays: investment.durationDays } })
     try {
       const accounts = await getPlatformAccounts()
       const hasMeta = accounts.some(
         (a) => a.provider === "meta" && a.status === "active"
       )
       if (!hasMeta) {
+        pendingInvestment.current = investment
         setMetaModalOpen(true)
         setSubmitting(false)
         return
       }
-      await proceedWithPublish()
+      await proceedWithPublish(investment)
     } catch (err) {
       console.error("Failed to check platform accounts", err)
       setSubmitting(false)
     }
   }
 
-  const handlePublished = () => {
-    setPublishModalOpen(false)
-    flow.clear()
-    router.push("/anuncios")
-  }
-
   const onMetaConnected = async () => {
     setMetaModalOpen(false)
-    await proceedWithPublish()
+    if (!pendingInvestment.current) return
+    setSubmitting(true)
+    await proceedWithPublish(pendingInvestment.current)
   }
 
   const renderStep = () => {
@@ -485,6 +499,7 @@ const CriarAnuncioPage = () => {
         return (
           <AdMessageStep
             initialValue={flow.adMessage}
+            initialVariations={flow.adMessageVariations}
             adName={flow.adBasicInfo?.name}
             adProductService={flow.adBasicInfo?.productService}
             onComplete={handleMessageComplete}
@@ -530,7 +545,7 @@ const CriarAnuncioPage = () => {
             orgSlug={organization?.slug}
           />
         )
-      default:
+      case 6:
         return (
           <ReviewStep
             flow={flow}
@@ -538,7 +553,15 @@ const CriarAnuncioPage = () => {
             submitting={submitting}
             onEdit={handleEditStep}
             onSaveDraft={handleSaveDraft}
-            onPublish={handlePublish}
+            onPublish={handleContinueToInvestment}
+          />
+        )
+      default:
+        return (
+          <AdInvestmentStep
+            initialValue={flow.investment}
+            submitting={submitting}
+            onSubmit={handleInvestmentSubmit}
           />
         )
     }
@@ -563,7 +586,7 @@ const CriarAnuncioPage = () => {
   return (
     <AuthGuard>
       <Layout>
-        <div className="grid gap-0 lg:grid-cols-[1fr_520px]">
+        <div className={flow.step >= 7 ? "grid gap-0" : "grid gap-0 lg:grid-cols-[1fr_520px]"}>
           <div className="min-w-0">
             {!loading && flow.hydrated && (
               <div className="px-8 pt-6 pb-2">
@@ -594,16 +617,12 @@ const CriarAnuncioPage = () => {
             )}
             {renderStep()}
           </div>
-          <div className="ad-creation-preview hidden border-l border-border lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)] lg:items-start lg:justify-center">
-            <AdPreview {...previewProps} className="h-full justify-start px-8 pt-28 pb-8" />
-          </div>
+          {flow.step < 7 && (
+            <div className="ad-creation-preview hidden border-l border-border lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)] lg:items-start lg:justify-center">
+              <AdPreview {...previewProps} className="h-full justify-start px-8 pt-28 pb-8" />
+            </div>
+          )}
         </div>
-        <PublishAdModal
-          adRequestId={createdAdRequestId}
-          open={publishModalOpen}
-          onOpenChange={setPublishModalOpen}
-          onPublished={handlePublished}
-        />
         <MetaConnectModal
           open={metaModalOpen}
           onOpenChange={setMetaModalOpen}

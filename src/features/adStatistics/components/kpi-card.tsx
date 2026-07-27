@@ -1,23 +1,43 @@
 import type { ReactNode } from "react"
 import { HelpCircle } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 type KpiCardProps = {
   label: string
   icon: ReactNode
   value: string
-  sub: string
+  sub?: string
   help?: string
+  /** Denser variant for secondary surfaces (ad detail summary). */
+  compact?: boolean
 }
 
-export const KpiCard = ({ label, icon, value, sub, help }: KpiCardProps) => {
+export const KpiCard = ({ label, icon, value, sub, help, compact }: KpiCardProps) => {
   return (
-    <article className="bg-card border rounded-xl p-5 shadow-ambient max-[640px]:p-3">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3 max-[640px]:mb-1.5 max-[640px]:text-[10px] max-[640px]:tracking-wider">
-        <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 max-[640px]:hidden">
+    <article
+      className={cn(
+        "bg-card border rounded-xl shadow-ambient",
+        compact ? "p-3" : "p-5 max-[640px]:p-3"
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center gap-2 font-semibold uppercase text-muted-foreground",
+          compact
+            ? "mb-1 gap-1.5 text-[10px] leading-tight tracking-wide"
+            : "mb-3 text-[11px] tracking-widest max-[640px]:mb-1.5 max-[640px]:text-[10px] max-[640px]:tracking-wider"
+        )}
+      >
+        <div
+          className={cn(
+            "rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0",
+            compact ? "size-5 [&_svg]:size-3" : "size-7 max-[640px]:hidden"
+          )}
+        >
           {icon}
         </div>
-        <span className="min-w-0 truncate">{label}</span>
+        <span className={cn("min-w-0", compact ? "leading-tight" : "truncate")}>{label}</span>
         {help && (
           <Popover>
             <PopoverTrigger asChild>
@@ -35,10 +55,26 @@ export const KpiCard = ({ label, icon, value, sub, help }: KpiCardProps) => {
           </Popover>
         )}
       </div>
-      <div className="font-quicksand text-[2.25rem] font-bold tracking-tight leading-none mb-1 tabular-nums max-[640px]:text-[1.375rem] max-[640px]:mb-0">
+      <div
+        className={cn(
+          "font-quicksand font-bold tracking-tight leading-none tabular-nums",
+          compact
+            ? "text-[1.375rem]"
+            : "text-[2.25rem] mb-1 max-[640px]:text-[1.375rem] max-[640px]:mb-0"
+        )}
+      >
         {value}
       </div>
-      <div className="text-[13px] text-muted-foreground max-[640px]:hidden">{sub}</div>
+      {sub && (
+        <div
+          className={cn(
+            "text-muted-foreground",
+            compact ? "mt-0.5 text-[11px] leading-tight" : "text-[13px] max-[640px]:hidden"
+          )}
+        >
+          {sub}
+        </div>
+      )}
     </article>
   )
 }

@@ -55,6 +55,7 @@ export type CreateBaseAdCreativePayload = {
   name: string
   product_service?: string
   message?: string
+  message_variations?: string[]
   headline?: string
   link?: string
   call_to_action?: string
